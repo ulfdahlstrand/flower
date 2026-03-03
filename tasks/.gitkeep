@@ -1,0 +1,2 @@
+# This folder contains per-task JSON state files named {issue-id}.json
+# They are created and updated by agents during task execution.
