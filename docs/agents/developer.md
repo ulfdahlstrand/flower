@@ -32,25 +32,31 @@ When invoked, you will be given:
    - Naming conventions
    - Any patterns explicitly prohibited
 
-### Step 2 — Identify blockers before writing code
+### Step 2 — Create your feature branch
+Before reading any code or writing anything, call `git_create_branch` with a name following the
+pattern `task/{issue-id}-short-description` (e.g. `task/42-add-login-flow`).
+
+This must happen before any `write_file` or `git_commit_and_push` call. If you skip this step
+the commit will be rejected.
+
+### Step 3 — Identify blockers before writing code
 Before implementing, check:
 - Are all dependency tasks merged? If not, post a blocker comment (see Blocker Handling).
 - Is the task underspecified? If an acceptance criterion is ambiguous, post a scope question (see Blocker Handling).
 - Would implementing this task require touching architecture — something outside your scope?
   If so, post a blocker comment.
 
-Only proceed to Step 3 once you are confident the task is clear and unblocked.
+Only proceed to Step 4 once you are confident the task is clear and unblocked.
 
-### Step 3 — Implement
-1. Create a branch named `task/{issue-id}-short-description`.
-2. Implement only what is required by the acceptance criteria.
+### Step 4 — Implement
+1. Implement only what is required by the acceptance criteria.
    - Do not add features, refactor unrelated code, or improve things "while you're there".
    - If you discover a bug or improvement opportunity outside scope, note it in a comment
      but do not fix it in this branch.
 3. Write clear, minimal code that follows patterns in `architecture.md`.
 4. Do not write tests — that is the Tester's responsibility.
 
-### Step 4 — Open a PR
+### Step 5 — Open a PR
 1. Open a PR from your branch to `main` (or the target branch specified in the task).
 2. PR title format: `[#{issue-id}] Short description of what was done`
 3. PR body must include:
@@ -58,11 +64,11 @@ Only proceed to Step 3 once you are confident the task is clear and unblocked.
    - A brief summary of what was implemented
    - Any decisions made during implementation that weren't in the task definition
    - Any known edge cases or limitations
-4. Apply label `agent:reviewer` to the PR.
+4. Apply label `agent:tester` to the PR (Tester runs first to verify behavior before Reviewer checks structure).
 5. Post on the Task issue:
    `[DEVELOPER] Implementation complete. PR #<pr-number> is open for review.`
 
-### Step 5 — Update task state
+### Step 6 — Update task state
 Update `/tasks/{issue-id}.json`:
 - Set `status` to `"in_review"`
 - Append to `conversation_log`:

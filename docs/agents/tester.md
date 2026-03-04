@@ -36,10 +36,12 @@ You are NOT reviewing the implementation — no code exists yet.
    - **All criteria are testable** → post:
      `[TESTER] Approved. All acceptance criteria are testable as written.`
      Append to `/tasks/{issue-id}.json` conversation_log with action `testability_approved`.
+     Then: remove label `agent:tester` and add label `agent:developer` on the task issue.
    - **Some criteria need revision** → post:
      `[TESTER] Needs revision. <List each problematic criterion and explain why it's untestable.
      Suggest a rewrite for each.>`
      Append to `/tasks/{issue-id}.json` with action `testability_rejected`, summary listing issues.
+     Then: remove label `agent:tester` and add label `agent:requirements` on the task issue.
 3. Do not approve if any criterion is vague, subjective, or immeasurable.
    Examples of untestable criteria:
    - "The page loads quickly" → untestable (no threshold defined)
@@ -65,12 +67,14 @@ Your job is to verify the implementation against the acceptance criteria.
    Update `/tasks/{issue-id}.json`:
    - Append to `conversation_log` with action `tests_passed`
    - Note any criteria that required interpretation or assumptions
+   Then: remove label `agent:tester` and add label `agent:reviewer` on the PR.
 
    **Some failing:**
    `[TESTER] Tests failing. N/M acceptance criteria verified. Failures:`
    List each failing criterion, what was tested, and what the actual behavior was.
    Update `/tasks/{issue-id}.json` with action `tests_failed`, failures listed in summary.
    Do NOT approve a PR with failing tests.
+   Then: remove label `agent:tester` and add label `agent:developer` on the PR.
 
    **Untestable at runtime:**
    If a criterion cannot be tested due to missing infrastructure, data, or environment:

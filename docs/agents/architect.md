@@ -51,10 +51,13 @@ When invoked for **PR review**, you will be given:
 3. Answer: does this task fit within the current architecture without modification?
    - **Yes** → post `[ARCHITECT] Approved. <brief rationale or constraints.>`
      Update `/tasks/{issue-id}.json`: add entry to `conversation_log` with action `approved`.
+     Then: remove label `agent:architect` and add label `agent:tester` on the task issue.
    - **No, minor adjustment needed** → post `[ARCHITECT] Approved with notes. <specific changes required.>`
      Update `/tasks/{issue-id}.json`: add entry with action `approved_with_notes`, include notes in summary.
+     Then: remove label `agent:architect` and add label `agent:tester` on the task issue.
    - **No, architectural change required** → post `[ARCHITECT] Blocked. This task requires an architectural decision first. Creating architectural task #<new-issue>.`
      Create the architectural task. Update `/tasks/{issue-id}.json` with action `blocked`, reason in summary.
+     Then: remove label `agent:architect` and add label `agent:requirements` on the task issue.
 
 ### On PR review
 1. Read the PR diff.

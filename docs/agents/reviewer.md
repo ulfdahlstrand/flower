@@ -66,6 +66,8 @@ Include a brief note on anything you verified that was non-obvious.
 Update `/tasks/{issue-id}.json`:
 - Append to `conversation_log` with action `review_approved`
 
+Then: remove label `agent:reviewer` from the PR. The PR is ready to merge.
+
 **Request changes:**
 One or more checks fail. Post a PR review requesting changes.
 - Prefix the summary comment with `[REVIEWER] Changes requested.`
@@ -79,12 +81,16 @@ One or more checks fail. Post a PR review requesting changes.
 Update `/tasks/{issue-id}.json`:
 - Append to `conversation_log` with action `review_changes_requested`, issues listed in summary.
 
+Then: remove label `agent:reviewer` and add label `agent:developer` on the PR.
+
 **Block (architectural violation):**
 The PR introduces changes that require an architectural decision before they can be merged.
 Post:
 `[REVIEWER] Blocked. This PR introduces an architectural change that has not been approved via a dedicated architectural task. Specifically: <describe the violation>. A new architectural task must be created and approved before this PR can be reviewed further.`
 
 Update `/tasks/{issue-id}.json` with action `review_blocked`.
+
+Then: remove label `agent:reviewer` from the PR (no next agent — human must resolve the architectural task first).
 
 ---
 
