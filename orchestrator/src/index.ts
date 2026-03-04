@@ -2,6 +2,8 @@ import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
 import { PORT, WEBHOOK_SECRET } from './config.js'
 import { routeIssueLabeled, routePrLabeled } from './router.js'
+import { runAgent } from './loop.js'
+import type { InvocationParams } from './types.js'
 
 const app = express()
 
@@ -54,6 +56,20 @@ const handleEvent = async (event: string, payload: Record<string, unknown>): Pro
 
   console.log(`[webhook] Ignored event: ${event} / ${payload.action}`)
 }
+
+// Manual trigger endpoint — bypasses webhook signature requirement
+// Usage: POST /trigger with InvocationParams JSON body
+app.post('/trigger', (req: Request, res: Response) => {
+  const params = req.body as InvocationParams
+  if (!params?.agent) {
+    res.status(400).json({ error: 'Request body must include at least { agent }' })
+    return
+  }
+  res.status(202).json({ message: `Dispatching ${params.agent}`, params })
+  runAgent(params).catch(err => {
+    console.error(`[trigger] Unhandled error for agent "${params.agent}":`, err)
+  })
+})
 
 app.listen(PORT, () => {
   console.log(`Flower orchestrator listening on port ${PORT}`)

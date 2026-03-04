@@ -9,7 +9,6 @@ const requireEnv = (name: string): string => {
 
 export const anthropic = new Anthropic({ apiKey: requireEnv('ANTHROPIC_API_KEY') })
 export const octokit = new Octokit({ auth: requireEnv('GITHUB_TOKEN') })
-console.log(anthropic)
 export const OWNER = requireEnv('GITHUB_OWNER')
 export const REPO = requireEnv('GITHUB_REPO')
 export const REPO_PATH = process.env.REPO_PATH ?? process.cwd()
