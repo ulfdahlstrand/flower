@@ -17,6 +17,7 @@ export interface InvocationParams {
   architectMode?: ArchitectMode
   testerMode?: TesterMode
   pmMode?: PmMode
+  humanComment?: string
 }
 
 export interface ToolResult {

@@ -39,6 +39,10 @@ export const runAgent = async (params: InvocationParams): Promise<void> => {
     console.log(`[${agent}] Resuming session from ${existing.updatedAt}`)
     messages = existing.messages
     backoffIndex = existing.backoffIndex
+    if (params.humanComment) {
+      messages.push({ role: 'user', content: `[Human comment on issue]: ${params.humanComment}` })
+      console.log(`[${agent}] Injecting human comment into session`)
+    }
   } else {
     const context = await buildContext(params)
     messages = [{ role: 'user', content: context }]

@@ -26,6 +26,22 @@ export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promi
   await runAgent(params)
 }
 
+export const routeIssueComment = async (issue: Issue, commentBody: string): Promise<void> => {
+  const labels = labelNames(issue.labels)
+  const agentLabel = labels.find(l => l.startsWith('agent:'))
+  if (!agentLabel) {
+    console.log(`[router] No active agent label on issue #${issue.number} — ignoring comment`)
+    return
+  }
+  const params = resolveIssueParams(issue.number, labels, agentLabel)
+  if (!params) {
+    console.log(`[router] No agent route for issue #${issue.number} with label "${agentLabel}"`)
+    return
+  }
+  console.log(`[router] Comment on #${issue.number} — re-invoking ${params.agent}`)
+  await runAgent({ ...params, humanComment: commentBody })
+}
+
 export const routePrLabeled = async (pr: PullRequest, addedLabel: string): Promise<void> => {
   const params = resolvePrParams(pr, addedLabel)
   if (!params) {
