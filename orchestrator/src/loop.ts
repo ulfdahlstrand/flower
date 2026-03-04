@@ -1,33 +1,81 @@
-import type Anthropic from '@anthropic-ai/sdk'
+import Anthropic from '@anthropic-ai/sdk'
 import { anthropic } from './config.js'
 import { getAgentConfig } from './agents.js'
 import { buildContext } from './context.js'
 import { getToolSchemas, executeTool } from './tools/index.js'
+import { saveSession, loadSession, clearSession } from './session.js'
 import type { InvocationParams } from './types.js'
 
 const MAX_ITERATIONS = 50
 
+// Retry backoff sequence in ms: 10s → 1min → 10min → 1h → 4h → (cycle)
+const BACKOFF_MS = [10_000, 60_000, 600_000, 3_600_000, 14_400_000]
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+const isOverloaded = (err: unknown): boolean => {
+  if (!(err instanceof Anthropic.APIError)) return false
+  const body = err.error as { error?: { type?: string } } | undefined
+  return err.status === 529 || body?.error?.type === 'overloaded_error'
+}
+
+const formatDelay = (ms: number): string => {
+  if (ms >= 3_600_000) return `${ms / 3_600_000}h`
+  if (ms >= 60_000) return `${ms / 60_000}min`
+  return `${ms / 1_000}s`
+}
+
 export const runAgent = async (params: InvocationParams): Promise<void> => {
   const { agent } = params
   const config = getAgentConfig(agent)
-  const context = await buildContext(params)
   const tools = getToolSchemas(agent)
 
-  console.log(`[${agent}] Starting — ${new Date().toISOString()}`)
+  // Resume from saved session if one exists, otherwise start fresh
+  const existing = loadSession(params)
+  let messages: Anthropic.MessageParam[]
+  let backoffIndex: number
 
-  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: context }]
+  if (existing) {
+    console.log(`[${agent}] Resuming session from ${existing.updatedAt}`)
+    messages = existing.messages
+    backoffIndex = existing.backoffIndex
+  } else {
+    const context = await buildContext(params)
+    messages = [{ role: 'user', content: context }]
+    backoffIndex = 0
+    console.log(`[${agent}] Starting — ${new Date().toISOString()}`)
+  }
+
   let iterations = 0
 
   while (iterations < MAX_ITERATIONS) {
     iterations++
 
-    const response = await anthropic.messages.create({
-      model: config.model,
-      max_tokens: 4096,
-      system: config.systemPrompt,
-      tools,
-      messages,
-    })
+    let response: Anthropic.Message
+    try {
+      response = await anthropic.messages.create({
+        model: config.model,
+        max_tokens: 4096,
+        system: config.systemPrompt,
+        tools,
+        messages,
+      })
+      // Successful call — reset backoff and persist session
+      backoffIndex = 0
+      saveSession(params, messages, backoffIndex)
+    } catch (err) {
+      if (isOverloaded(err)) {
+        const delay = BACKOFF_MS[backoffIndex % BACKOFF_MS.length]
+        backoffIndex = (backoffIndex + 1) % BACKOFF_MS.length
+        // Persist so a restart can resume with the same backoff state
+        saveSession(params, messages, backoffIndex)
+        console.warn(`[${agent}] API overloaded. Retrying in ${formatDelay(delay)}...`)
+        await sleep(delay)
+        iterations--
+        continue
+      }
+      throw err
+    }
 
     console.log(`[${agent}] Iteration ${iterations} — stop_reason: ${response.stop_reason}`)
 
@@ -35,6 +83,7 @@ export const runAgent = async (params: InvocationParams): Promise<void> => {
 
     if (response.stop_reason === 'end_turn') {
       console.log(`[${agent}] Done`)
+      clearSession(params)
       break
     }
 
