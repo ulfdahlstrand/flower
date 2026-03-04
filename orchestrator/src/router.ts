@@ -1,0 +1,61 @@
+import { runAgent } from './loop.js'
+import type { InvocationParams } from './types.js'
+
+type Label = { name?: string }
+type Issue = { number: number; labels: Label[] }
+type PullRequest = { number: number; labels: Label[]; body?: string }
+
+const labelNames = (labels: Label[]): string[] =>
+  labels.map(l => l.name ?? '').filter(Boolean)
+
+// Extract the task issue number from a PR body ("Closes #42" or "Part of #42")
+const extractIssueRef = (body?: string): number | undefined => {
+  if (!body) return undefined
+  const match = body.match(/(?:Closes|Fixes|Resolves|Part of)\s+#(\d+)/i)
+  return match ? parseInt(match[1], 10) : undefined
+}
+
+export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promise<void> => {
+  const labels = labelNames(issue.labels)
+  const params = resolveIssueParams(issue.number, labels, addedLabel)
+  if (!params) {
+    console.log(`[router] No agent route for issue #${issue.number} with label "${addedLabel}"`)
+    return
+  }
+  console.log(`[router] Dispatching ${params.agent} for issue #${issue.number}`)
+  await runAgent(params)
+}
+
+export const routePrLabeled = async (pr: PullRequest, addedLabel: string): Promise<void> => {
+  const params = resolvePrParams(pr, addedLabel)
+  if (!params) {
+    console.log(`[router] No agent route for PR #${pr.number} with label "${addedLabel}"`)
+    return
+  }
+  console.log(`[router] Dispatching ${params.agent} for PR #${pr.number}`)
+  await runAgent(params)
+}
+
+const resolveIssueParams = (
+  issueNumber: number,
+  currentLabels: string[],
+  addedLabel: string,
+): InvocationParams | null => {
+  const isEpic = currentLabels.includes('type:epic')
+  const isFeature = currentLabels.includes('type:feature')
+  const isTask = currentLabels.includes('type:task')
+
+  if (addedLabel === 'agent:architect' && isEpic) return { agent: 'architect', issueNumber, architectMode: 'epic_breakdown' }
+  if (addedLabel === 'agent:architect' && isTask) return { agent: 'architect', issueNumber, architectMode: 'task_review' }
+  if (addedLabel === 'agent:requirements' && isFeature) return { agent: 'requirements', issueNumber }
+  if (addedLabel === 'agent:developer' && isTask) return { agent: 'developer', issueNumber }
+  if (addedLabel === 'agent:tester' && isTask) return { agent: 'tester', issueNumber, testerMode: 'pre_dev' }
+  return null
+}
+
+const resolvePrParams = (pr: PullRequest, addedLabel: string): InvocationParams | null => {
+  const taskNumber = extractIssueRef(pr.body)
+  if (addedLabel === 'agent:reviewer') return { agent: 'reviewer', prNumber: pr.number, issueNumber: taskNumber }
+  if (addedLabel === 'agent:tester') return { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
+  return null
+}
