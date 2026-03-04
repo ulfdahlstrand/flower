@@ -78,6 +78,19 @@ export const listIssues = async (
   })))
 }
 
+export const getPr = async (prNumber: number): Promise<string> => {
+  const { data } = await octokit.pulls.get({ owner: OWNER, repo: REPO, pull_number: prNumber })
+  return JSON.stringify({
+    number: data.number,
+    title: data.title,
+    body: data.body,
+    state: data.state,
+    head_branch: data.head.ref,
+    base_branch: data.base.ref,
+    labels: data.labels.map(l => l.name),
+  })
+}
+
 export const getPrDiff = async (prNumber: number): Promise<string> => {
   const { data } = await octokit.pulls.get({
     owner: OWNER,

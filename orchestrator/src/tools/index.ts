@@ -198,7 +198,7 @@ const AGENT_SCHEMAS: Record<string, Tool[]> = {
   developer: [
     {
       name: 'git_create_branch',
-      description: 'Create and check out a new git branch.',
+      description: 'Fetch origin/main, reset local main to it, then create and check out a new feature branch. MUST be called before any git_commit_and_push.',
       input_schema: {
         type: 'object',
         properties: { branch_name: { type: 'string', description: 'e.g. task/42-add-login-flow' } },
@@ -206,8 +206,17 @@ const AGENT_SCHEMAS: Record<string, Tool[]> = {
       },
     },
     {
+      name: 'git_checkout_branch',
+      description: 'Fetch and check out an existing remote branch.',
+      input_schema: {
+        type: 'object',
+        properties: { branch_name: { type: 'string' } },
+        required: ['branch_name'],
+      },
+    },
+    {
       name: 'git_commit_and_push',
-      description: 'Stage files, commit with a message, and push the branch.',
+      description: 'Stage files, commit with a message, and push the branch. Refuses if current branch is main.',
       input_schema: {
         type: 'object',
         properties: {
@@ -243,6 +252,15 @@ const AGENT_SCHEMAS: Record<string, Tool[]> = {
     },
   ],
   tester: [
+    {
+      name: 'git_checkout_branch',
+      description: 'Fetch and check out an existing remote branch (use to get onto the feature branch before writing tests).',
+      input_schema: {
+        type: 'object',
+        properties: { branch_name: { type: 'string' } },
+        required: ['branch_name'],
+      },
+    },
     {
       name: 'run_tests',
       description: 'Run the test suite or a specific test command and return output.',
@@ -332,6 +350,7 @@ const HANDLERS: Record<string, ToolHandler> = {
     github.createIssue(title as string, body as string, labels as string[], milestone_number as number | undefined),
   github_list_issues: ({ labels, milestone_number, state }) =>
     github.listIssues(labels as string[] | undefined, milestone_number as number | undefined, (state as 'open' | 'closed' | 'all') ?? 'open'),
+  github_get_pr: ({ pr_number }) => github.getPr(pr_number as number),
   github_get_pr_diff: ({ pr_number }) => github.getPrDiff(pr_number as number),
   github_submit_pr_review: ({ pr_number, event, body, comments }) =>
     github.submitPrReview(
@@ -344,6 +363,7 @@ const HANDLERS: Record<string, ToolHandler> = {
     github.createPr(title as string, body as string, head as string, base as string, labels as string[] | undefined),
 
   git_create_branch: ({ branch_name }) => git.createBranch(branch_name as string),
+  git_checkout_branch: ({ branch_name }) => git.checkoutBranch(branch_name as string),
   git_commit_and_push: ({ files: f, message }) => git.commitAndPush(f as string[], message as string),
   run_tests: ({ command }) => git.runTests(command as string | undefined),
 }

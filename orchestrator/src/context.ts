@@ -1,5 +1,5 @@
 import { readFile } from './tools/files.js'
-import { getIssue, listIssues, getPrDiff } from './tools/github.js'
+import { getIssue, listIssues, getPr, getPrDiff } from './tools/github.js'
 import type { InvocationParams } from './types.js'
 
 export const buildContext = async (params: InvocationParams): Promise<string> => {
@@ -159,8 +159,13 @@ ${taskState}`
 const buildTesterPostDev = async (taskNumber: number, prNumber: number): Promise<string> => {
   const architecture = safeReadFile('docs/architecture.md')
   const taskState = safeReadFile(`tasks/${taskNumber}.json`)
-  const [task, diff] = await Promise.all([getIssue(taskNumber), getPrDiff(prNumber)])
+  const [task, prRaw, diff] = await Promise.all([getIssue(taskNumber), getPr(prNumber), getPrDiff(prNumber)])
+  const pr = JSON.parse(prRaw) as { head_branch: string }
   return `You are being invoked to test the implementation of Task #${taskNumber}.
+
+## Feature Branch
+The implementation is on branch: \`${pr.head_branch}\`
+Call git_checkout_branch with this branch name before writing or running any tests.
 
 ## Task #${taskNumber} — Acceptance Criteria
 ${task}
