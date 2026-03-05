@@ -67,6 +67,10 @@ const handleEvent = async (event: string, payload: Record<string, unknown>): Pro
       console.log(`[webhook] Ignoring bot comment on #${issue.number}`)
       return
     }
+    if (/^\[(PM|ARCHITECT|REQUIREMENTS|DEVELOPER|TESTER|REVIEWER)\]/.test(comment.body)) {
+      console.log(`[webhook] Ignoring agent comment on #${issue.number}`)
+      return
+    }
     if (issue.pull_request) {
       console.log(`[webhook] Ignoring comment on PR #${issue.number}`)
       return

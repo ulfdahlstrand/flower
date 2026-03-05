@@ -45,11 +45,15 @@ export const closeIssue = async (issueNumber: number): Promise<string> => {
 }
 
 export const listChildIssues = async (parentNumber: number): Promise<string> => {
-  const { data } = await octokit.search.issuesAndPullRequests({
-    q: `repo:${OWNER}/${REPO} "Part of #${parentNumber}" in:body is:issue`,
+  const { data } = await octokit.issues.listForRepo({
+    owner: OWNER,
+    repo: REPO,
+    state: 'all',
     per_page: 100,
   })
-  return JSON.stringify(data.items.map(i => ({
+  const children = data
+    .filter(i => !i.pull_request && i.body?.includes(`Part of #${parentNumber}`))
+  return JSON.stringify(children.map(i => ({
     number: i.number,
     title: i.title,
     state: i.state,

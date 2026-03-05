@@ -1,4 +1,5 @@
 import { runAgent } from './loop.js'
+import { closeIssue, listChildIssues, postComment } from './tools/github.js'
 import type { InvocationParams } from './types.js'
 
 type Label = { name?: string }
@@ -28,12 +29,21 @@ export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promi
 
 export const routeIssueClosed = async (issueNumber: number, body?: string): Promise<void> => {
   const parentMatch = body?.match(/Part of #(\d+)/i)
-  if (!parentMatch) {
-    console.log(`[router] Issue #${issueNumber} closed — no parent ref, skipping PM`)
+  if (!parentMatch) return
+
+  const parentNumber = parseInt(parentMatch[1], 10)
+  const siblingsRaw = await listChildIssues(parentNumber)
+  const siblings = JSON.parse(siblingsRaw) as Array<{ number: number; state: string }>
+
+  const openSiblings = siblings.filter(s => s.state === 'open' && s.number !== issueNumber)
+  if (openSiblings.length > 0) {
+    console.log(`[router] #${parentNumber} still has ${openSiblings.length} open child(ren) — not closing`)
     return
   }
-  console.log(`[router] Issue #${issueNumber} closed — dispatching PM to check parent #${parentMatch[1]}`)
-  await runAgent({ agent: 'pm', issueNumber, pmMode: 'issue_closed' })
+
+  console.log(`[router] All children of #${parentNumber} closed — closing parent`)
+  await closeIssue(parentNumber)
+  await postComment(parentNumber, '[PM] All child issues are complete. Closing.')
 }
 
 export const routeIssueComment = async (issue: Issue, commentBody: string): Promise<void> => {
