@@ -52,7 +52,20 @@ const buildPmMonitor = async (): Promise<string> => {
     listIssues([], undefined, 'open'),
     listIssues(['status:blocked'], undefined, 'open'),
   ])
+
+  const allIssues = JSON.parse(all) as Array<{ labels: (string | null)[] }>
+  const activeAgentIssues = allIssues.filter(i =>
+    i.labels.some(l => l?.startsWith('agent:') && l !== 'agent:pm'),
+  )
+
   return `You are being invoked to monitor project progress and resolve blockers.
+
+## Pipeline Capacity
+Active agent assignments (issues with agent:* labels currently being processed): ${activeAgentIssues.length}
+Recommended maximum concurrent: 3
+
+If active assignments >= 3, do NOT advance new issues into the pipeline.
+Post: [PM] Pipeline at capacity (${activeAgentIssues.length} active). Monitoring only.
 
 ## Open Issues
 ${all}

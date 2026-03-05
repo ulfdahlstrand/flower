@@ -30,14 +30,20 @@ When invoked, you will be given:
    `[PM] Epic created. Assigned to Architect for feature breakdown.`
 
 ### On subsequent invocations (progress monitoring)
-1. List all open issues and their current status labels.
-2. Identify blockers: issues with `status:blocked` or issues stuck in a status for too long.
-3. For blocked issues, read the latest comments to understand the blocker.
-4. Decide and act:
+1. Check the **Pipeline Capacity** section in your context first.
+   - If active agent assignments >= 3: post `[PM] Pipeline at capacity (N active). Monitoring only.` and stop.
+     Do not advance any issues. The pipeline will free up as agents complete their work.
+   - If below capacity: continue to step 2.
+2. List all open issues and their current status labels.
+3. Identify blockers: issues with `status:blocked` or issues stuck in a status for too long.
+4. For blocked issues, read the latest comments to understand the blocker.
+5. Decide and act:
    - If the blocker is a scope question → comment with a decision, update the task JSON
    - If the blocker requires a new architectural task → create one with `type:task`, `agent:architect`
    - If a task needs re-scoping → comment and re-assign to Requirements Specialist
-5. If all tasks in a milestone are `status:done`, close the milestone.
+6. When advancing a backlog issue into the pipeline, check capacity again — only advance one issue
+   at a time and stop after each advancement to let the pipeline absorb the new work.
+7. If all tasks in a milestone are `status:done`, close the milestone.
 
 ---
 

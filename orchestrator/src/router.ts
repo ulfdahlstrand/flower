@@ -1,5 +1,5 @@
 import { runAgent } from './loop.js'
-import { addLabel, closeIssue, listChildIssues, postComment } from './tools/github.js'
+import { addLabel, removeLabel, closeIssue, listChildIssues, postComment } from './tools/github.js'
 import { readFile, writeFile } from './tools/files.js'
 import { loadSession } from './session.js'
 import type { InvocationParams } from './types.js'
@@ -20,6 +20,16 @@ const extractIssueRef = (body?: string): number | undefined => {
 
 export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promise<void> => {
   const labels = labelNames(issue.labels)
+
+  // PM label on an epic: hand off to Architect — no LLM reasoning needed
+  if (addedLabel === 'agent:pm' && labels.includes('type:epic')) {
+    console.log(`[router] Epic #${issue.number} assigned to PM — redirecting to Architect`)
+    await removeLabel(issue.number, 'agent:pm')
+    await addLabel(issue.number, 'agent:architect')
+    await postComment(issue.number, '[PM] Epic received. Assigning to Architect for feature breakdown.')
+    return
+  }
+
   const params = resolveIssueParams(issue.number, labels, addedLabel)
   if (!params) {
     console.log(`[router] No agent route for issue #${issue.number} with label "${addedLabel}"`)
