@@ -1,5 +1,6 @@
 import { runAgent } from './loop.js'
 import { closeIssue, listChildIssues, postComment } from './tools/github.js'
+import { loadSession } from './session.js'
 import type { InvocationParams } from './types.js'
 
 type Label = { name?: string }
@@ -56,6 +57,11 @@ export const routeIssueComment = async (issue: Issue, commentBody: string): Prom
   const params = resolveIssueParams(issue.number, labels, agentLabel)
   if (!params) {
     console.log(`[router] No agent route for issue #${issue.number} with label "${agentLabel}"`)
+    return
+  }
+  const existingSession = loadSession(params)
+  if (existingSession && !/continue/i.test(commentBody)) {
+    console.log(`[router] Session paused for #${issue.number} — comment must include "continue" to resume`)
     return
   }
   console.log(`[router] Comment on #${issue.number} — re-invoking ${params.agent}`)

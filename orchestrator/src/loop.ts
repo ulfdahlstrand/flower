@@ -4,6 +4,7 @@ import { getAgentConfig } from './agents.js'
 import { buildContext } from './context.js'
 import { getToolSchemas, executeTool } from './tools/index.js'
 import { saveSession, loadSession, clearSession } from './session.js'
+import { postComment } from './tools/github.js'
 import type { InvocationParams } from './types.js'
 
 const MAX_ITERATIONS = 50
@@ -124,6 +125,16 @@ export const runAgent = async (params: InvocationParams): Promise<void> => {
   }
 
   if (iterations >= MAX_ITERATIONS) {
-    console.error(`[${agent}] Hit max iterations (${MAX_ITERATIONS}) — stopping`)
+    // Save with all messages including last assistant response + tool results
+    saveSession(params, messages, backoffIndex)
+    console.warn(`[${agent}] Hit max iterations (${MAX_ITERATIONS}) — session saved, awaiting "continue"`)
+
+    const issueRef = params.issueNumber ?? params.prNumber
+    if (issueRef) {
+      postComment(
+        issueRef,
+        `[${agent.toUpperCase()}] Reached the iteration limit (${MAX_ITERATIONS}). Work is saved. Reply with "continue" to resume.`,
+      ).catch(err => console.error(`[${agent}] Failed to post pause comment:`, err))
+    }
   }
 }
