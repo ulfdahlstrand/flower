@@ -1,5 +1,5 @@
 import { readFile } from './tools/files.js'
-import { getIssue, listIssues, getPr, getPrDiff } from './tools/github.js'
+import { getIssue, listIssues, listChildIssues, getPr, getPrDiff } from './tools/github.js'
 import type { InvocationParams } from './types.js'
 
 export const buildContext = async (params: InvocationParams): Promise<string> => {
@@ -7,7 +7,9 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
 
   switch (agent) {
     case 'pm':
-      return pmMode === 'init' ? buildPmInit() : buildPmMonitor()
+      if (pmMode === 'init') return buildPmInit()
+      if (pmMode === 'issue_closed') return buildPmIssueClosed(issueNumber!)
+      return buildPmMonitor()
 
     case 'architect':
       if (architectMode === 'epic_breakdown') return buildArchitectEpicBreakdown(issueNumber!)
@@ -44,6 +46,31 @@ ${brief}
 
 ## Current State
 No milestones or issues exist yet.`
+}
+
+const buildPmIssueClosed = async (closedIssueNumber: number): Promise<string> => {
+  const closedIssueRaw = await getIssue(closedIssueNumber)
+  const closedIssue = JSON.parse(closedIssueRaw) as { body?: string; title: string }
+  const parentMatch = closedIssue.body?.match(/Part of #(\d+)/i)
+  if (!parentMatch) {
+    return `Issue #${closedIssueNumber} was closed but has no parent issue. Nothing to do.`
+  }
+  const parentNumber = parseInt(parentMatch[1], 10)
+  const [parent, siblings] = await Promise.all([
+    getIssue(parentNumber),
+    listChildIssues(parentNumber),
+  ])
+  return `Issue #${closedIssueNumber} was just closed. It is a child of #${parentNumber}.
+
+## Parent Issue #${parentNumber}
+${parent}
+
+## All Child Issues of #${parentNumber}
+${siblings}
+
+Check whether all child issues are now closed. If yes, close the parent issue #${parentNumber}
+and post a [PM] comment explaining that all child work is complete.
+If any child issues are still open, do nothing.`
 }
 
 const buildPmMonitor = async (): Promise<string> => {
@@ -132,11 +159,12 @@ ${architecture}`
 const buildDeveloper = async (taskNumber: number): Promise<string> => {
   const architecture = safeReadFile('docs/architecture.md')
   const taskState = safeReadFile(`tasks/${taskNumber}.json`)
-  const task = await getIssue(taskNumber)
+  const taskRaw = await getIssue(taskNumber)
+  const { comments: _comments, ...task } = JSON.parse(taskRaw)
   return `You are being invoked to implement Task #${taskNumber}.
 
 ## Task #${taskNumber}
-${task}
+${JSON.stringify(task, null, 2)}
 
 ## Task State
 ${taskState}

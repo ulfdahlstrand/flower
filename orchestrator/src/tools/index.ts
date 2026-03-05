@@ -1,5 +1,25 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import * as github from './github.js'
+
+const GITHUB_CLOSE_ISSUE_SCHEMA: Tool = {
+  name: 'github_close_issue',
+  description: 'Close a GitHub issue.',
+  input_schema: {
+    type: 'object',
+    properties: { issue_number: { type: 'integer' } },
+    required: ['issue_number'],
+  },
+}
+
+const GITHUB_LIST_CHILD_ISSUES_SCHEMA: Tool = {
+  name: 'github_list_child_issues',
+  description: 'List all issues that reference a parent issue with "Part of #<number>" in their body.',
+  input_schema: {
+    type: 'object',
+    properties: { parent_issue_number: { type: 'integer' } },
+    required: ['parent_issue_number'],
+  },
+}
 import * as files from './files.js'
 import * as git from './git.js'
 
@@ -94,6 +114,8 @@ const SHARED_SCHEMAS: Tool[] = [
 
 const AGENT_SCHEMAS: Record<string, Tool[]> = {
   pm: [
+    GITHUB_CLOSE_ISSUE_SCHEMA,
+    GITHUB_LIST_CHILD_ISSUES_SCHEMA,
     {
       name: 'github_create_milestone',
       description: 'Create a GitHub milestone.',
@@ -355,6 +377,8 @@ const HANDLERS: Record<string, ToolHandler> = {
   list_files: ({ path }) => files.listFiles(path as string),
 
   github_get_issue: ({ issue_number }) => github.getIssue(issue_number as number),
+  github_close_issue: ({ issue_number }) => github.closeIssue(issue_number as number),
+  github_list_child_issues: ({ parent_issue_number }) => github.listChildIssues(parent_issue_number as number),
   github_update_issue: ({ issue_number, title, body }) =>
     github.updateIssue(issue_number as number, { title: title as string | undefined, body: body as string | undefined }),
   github_comment: ({ issue_number, body }) => github.postComment(issue_number as number, body as string),

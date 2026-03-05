@@ -29,6 +29,17 @@ When invoked, you will be given:
 6. After all Epics are created, post a summary comment on each issue:
    `[PM] Epic created. Assigned to Architect for feature breakdown.`
 
+### On issue closed (automatic cascade check)
+When a child issue is closed, you are invoked to check whether the parent should also be closed.
+
+1. Call `github_list_child_issues` with the parent issue number.
+2. Check if **all** child issues have `state: "closed"`.
+   - **All closed** → call `github_close_issue` on the parent, then post:
+     `[PM] All child issues are complete. Closing.`
+     If the parent also has a parent (e.g. a Feature inside an Epic), the next closure event
+     will trigger another check automatically — the cascade happens naturally.
+   - **Some still open** → do nothing. No comment needed.
+
 ### On subsequent invocations (progress monitoring)
 1. List all open issues and their current status labels.
 2. Identify blockers: issues with `status:blocked` or issues stuck in a status for too long.

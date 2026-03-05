@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
 import { PORT, WEBHOOK_SECRET } from './config.js'
-import { routeIssueLabeled, routePrLabeled, routeIssueComment } from './router.js'
+import { routeIssueLabeled, routePrLabeled, routeIssueComment, routeIssueClosed } from './router.js'
 import { runAgent } from './loop.js'
 import type { InvocationParams } from './types.js'
 
@@ -40,6 +40,12 @@ app.post('/webhook', async (req: Request & { rawBody?: Buffer }, res: Response) 
 })
 
 const handleEvent = async (event: string, payload: Record<string, unknown>): Promise<void> => {
+  if (event === 'issues' && payload.action === 'closed') {
+    const issue = payload.issue as { number: number; body?: string }
+    await routeIssueClosed(issue.number, issue.body)
+    return
+  }
+
   if (event === 'issues' && payload.action === 'labeled') {
     const issue = payload.issue as { number: number; labels: Array<{ name?: string }> }
     const label = (payload.label as { name: string }).name

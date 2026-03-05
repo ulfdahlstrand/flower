@@ -26,6 +26,16 @@ export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promi
   await runAgent(params)
 }
 
+export const routeIssueClosed = async (issueNumber: number, body?: string): Promise<void> => {
+  const parentMatch = body?.match(/Part of #(\d+)/i)
+  if (!parentMatch) {
+    console.log(`[router] Issue #${issueNumber} closed — no parent ref, skipping PM`)
+    return
+  }
+  console.log(`[router] Issue #${issueNumber} closed — dispatching PM to check parent #${parentMatch[1]}`)
+  await runAgent({ agent: 'pm', issueNumber, pmMode: 'issue_closed' })
+}
+
 export const routeIssueComment = async (issue: Issue, commentBody: string): Promise<void> => {
   const labels = labelNames(issue.labels)
   const agentLabel = labels.find(l => l.startsWith('agent:'))

@@ -39,6 +39,24 @@ export const closeMilestone = async (milestoneNumber: number): Promise<string> =
   return `Milestone #${milestoneNumber} closed`
 }
 
+export const closeIssue = async (issueNumber: number): Promise<string> => {
+  await octokit.issues.update({ owner: OWNER, repo: REPO, issue_number: issueNumber, state: 'closed' })
+  return `Issue #${issueNumber} closed`
+}
+
+export const listChildIssues = async (parentNumber: number): Promise<string> => {
+  const { data } = await octokit.search.issuesAndPullRequests({
+    q: `repo:${OWNER}/${REPO} "Part of #${parentNumber}" in:body is:issue`,
+    per_page: 100,
+  })
+  return JSON.stringify(data.items.map(i => ({
+    number: i.number,
+    title: i.title,
+    state: i.state,
+    labels: i.labels.map(l => (typeof l === 'string' ? l : l.name)),
+  })))
+}
+
 export const updateIssue = async (
   issueNumber: number,
   fields: { title?: string; body?: string },
