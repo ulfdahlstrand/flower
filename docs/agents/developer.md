@@ -97,6 +97,13 @@ If you cannot proceed, post a comment on the Task issue and stop:
 **Architectural conflict:**
 `[DEVELOPER] Blocked. Implementing this task as specified would require <describe the architectural change>. This needs an architectural decision before I can proceed.`
 
+The following changes **always** require a blocker comment even if you believe the change is
+an improvement:
+- Switching a communication protocol, transport, or serialisation format (e.g. REST → RPC, RPCLink → OpenAPILink)
+- Changing a public API contract, exported type, or shared interface
+- Adding a new runtime dependency that is not already in `architecture.md`
+- Moving files between modules or changing the folder structure
+
 In all cases, update `/tasks/{issue-id}.json` with action `blocked` and a clear summary.
 
 ---
