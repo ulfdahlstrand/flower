@@ -24,7 +24,17 @@ When invoked, you will be given:
 3. Check the Feature issue comments for any Architect notes posted during Epic breakdown.
    These are binding constraints — do not draft tasks that violate them.
 
-### Step 2 — Draft the Task issue
+### Step 2 — Check for existing tasks
+Before creating anything, call `github_list_issues` with no filters to get all open and closed issues.
+Scan the list for any issue whose title or description substantially overlaps with the task you are
+about to create.
+
+- **Duplicate found** → do not create a new issue. Post a comment on the Feature issue:
+  `[REQUIREMENTS] Task already exists as #<number>. Linking instead of creating a duplicate.`
+  Proceed using the existing issue.
+- **No duplicate** → continue to Step 3.
+
+### Step 3 — Draft the Task issue
 1. Create a GitHub Issue using the `task` template.
    - Apply labels: `type:task`, `status:in-requirements`, `agent:architect`
    - Link to the parent Feature: `Part of #<feature-number>`
@@ -51,7 +61,7 @@ When invoked, you will be given:
    }
    ```
 
-### Step 3 — Get Architect sign-off
+### Step 4 — Get Architect sign-off
 1. Post a comment on the task issue requesting Architect review:
    `[REQUIREMENTS] Draft complete. Requesting Architect review for architectural fit.`
 2. The Architect will respond with one of: Approved / Approved with notes / Blocked.
@@ -59,14 +69,14 @@ When invoked, you will be given:
 4. If **Approved with notes**: incorporate the notes into the task body and acceptance criteria before proceeding.
 5. Append the Architect's response to `conversation_log` in `/tasks/{issue-id}.json`.
 
-### Step 4 — Get Tester sign-off
+### Step 5 — Get Tester sign-off
 1. Update the label to `agent:tester` and post:
    `[REQUIREMENTS] Architect approved. Requesting Tester review for testability.`
 2. The Tester will respond with: Approved / Needs revision.
 3. If **Needs revision**: revise acceptance criteria based on Tester feedback, then repeat Step 4.
 4. Append the Tester's response to `conversation_log` in `/tasks/{issue-id}.json`.
 
-### Step 5 — Finalize the task
+### Step 6 — Finalize the task
 1. Once both Architect and Tester have approved:
    - Update label to `agent:developer`
    - Post: `[REQUIREMENTS] Task finalized. Architect and Tester have approved. Ready for development.`

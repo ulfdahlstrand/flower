@@ -218,6 +218,17 @@ const AGENT_SCHEMAS: Record<string, Tool[]> = {
   requirements: [
     GITHUB_UPDATE_ISSUE_SCHEMA,
     {
+      name: 'github_list_issues',
+      description: 'List GitHub issues (all states) to check for duplicates before creating a task.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          labels: { type: 'array', items: { type: 'string' } },
+          state: { type: 'string', enum: ['open', 'closed', 'all'] },
+        },
+      },
+    },
+    {
       name: 'github_create_issue',
       description: 'Create a Task issue.',
       input_schema: {
