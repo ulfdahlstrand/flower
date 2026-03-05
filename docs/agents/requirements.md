@@ -76,6 +76,19 @@ When invoked, you will be given:
 
 ---
 
+## Task revision mode
+You may be invoked directly on a **Task** issue (not a Feature) when acceptance criteria need
+to be revised — triggered by Tester rejection or a human comment requesting changes.
+
+1. Read the Task issue body and all comments to understand what needs to change.
+2. Read `/tasks/{issue-id}.json` to understand what sign-offs have already been given.
+3. Update the Task issue body with the revised acceptance criteria.
+4. Append to `conversation_log` with action `criteria_revised` and a summary of changes.
+5. Restart the sign-off process from Step 3 (Architect) — previous approvals are invalidated
+   by the criteria change and must be re-obtained.
+   - Remove any existing `agent:tester` or `agent:developer` label if present.
+   - Add `agent:architect` and post: `[REQUIREMENTS] Acceptance criteria revised. Requesting re-approval.`
+
 ## Handling re-invocation
 If you are re-invoked after a blocker is resolved:
 1. Read the current `/tasks/{issue-id}.json` and issue comments to understand what changed.

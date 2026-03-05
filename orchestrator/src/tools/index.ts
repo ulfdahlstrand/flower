@@ -9,6 +9,20 @@ type Tool = Anthropic.Tool
 
 // --- Schemas ---
 
+const GITHUB_UPDATE_ISSUE_SCHEMA: Tool = {
+  name: 'github_update_issue',
+  description: 'Update the title and/or body of a GitHub issue.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      issue_number: { type: 'integer' },
+      title: { type: 'string' },
+      body: { type: 'string' },
+    },
+    required: ['issue_number'],
+  },
+}
+
 const SHARED_SCHEMAS: Tool[] = [
   {
     name: 'read_file',
@@ -180,6 +194,7 @@ const AGENT_SCHEMAS: Record<string, Tool[]> = {
     },
   ],
   requirements: [
+    GITHUB_UPDATE_ISSUE_SCHEMA,
     {
       name: 'github_create_issue',
       description: 'Create a Task issue.',
@@ -340,6 +355,8 @@ const HANDLERS: Record<string, ToolHandler> = {
   list_files: ({ path }) => files.listFiles(path as string),
 
   github_get_issue: ({ issue_number }) => github.getIssue(issue_number as number),
+  github_update_issue: ({ issue_number, title, body }) =>
+    github.updateIssue(issue_number as number, { title: title as string | undefined, body: body as string | undefined }),
   github_comment: ({ issue_number, body }) => github.postComment(issue_number as number, body as string),
   github_add_label: ({ issue_number, label }) => github.addLabel(issue_number as number, label as string),
   github_remove_label: ({ issue_number, label }) => github.removeLabel(issue_number as number, label as string),

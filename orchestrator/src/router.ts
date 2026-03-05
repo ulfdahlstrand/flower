@@ -63,7 +63,8 @@ const resolveIssueParams = (
 
   if (addedLabel === 'agent:architect' && isEpic) return { agent: 'architect', issueNumber, architectMode: 'epic_breakdown' }
   if (addedLabel === 'agent:architect' && isTask) return { agent: 'architect', issueNumber, architectMode: 'task_review' }
-  if (addedLabel === 'agent:requirements' && isFeature) return { agent: 'requirements', issueNumber }
+  if (addedLabel === 'agent:requirements' && isFeature) return { agent: 'requirements', issueNumber, requirementsMode: 'feature' }
+  if (addedLabel === 'agent:requirements' && isTask) return { agent: 'requirements', issueNumber, requirementsMode: 'task_revision' }
   if (addedLabel === 'agent:developer' && isTask) return { agent: 'developer', issueNumber }
   if (addedLabel === 'agent:tester' && isTask) return { agent: 'tester', issueNumber, testerMode: 'pre_dev' }
   return null

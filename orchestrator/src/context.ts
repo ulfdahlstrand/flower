@@ -3,7 +3,7 @@ import { getIssue, listIssues, getPr, getPrDiff } from './tools/github.js'
 import type { InvocationParams } from './types.js'
 
 export const buildContext = async (params: InvocationParams): Promise<string> => {
-  const { agent, issueNumber, prNumber, architectMode, testerMode, pmMode } = params
+  const { agent, issueNumber, prNumber, architectMode, testerMode, pmMode, requirementsMode } = params
 
   switch (agent) {
     case 'pm':
@@ -16,6 +16,7 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
       throw new Error('Architect requires architectMode')
 
     case 'requirements':
+      if (requirementsMode === 'task_revision') return buildRequirementsTaskRevision(issueNumber!)
       return buildRequirements(issueNumber!)
 
     case 'developer':
@@ -133,6 +134,26 @@ const buildDeveloper = async (taskNumber: number): Promise<string> => {
   const taskState = safeReadFile(`tasks/${taskNumber}.json`)
   const task = await getIssue(taskNumber)
   return `You are being invoked to implement Task #${taskNumber}.
+
+## Task #${taskNumber}
+${task}
+
+## Task State
+${taskState}
+
+## Current Architecture
+${architecture}`
+}
+
+const buildRequirementsTaskRevision = async (taskNumber: number): Promise<string> => {
+  const architecture = safeReadFile('docs/architecture.md')
+  const taskState = safeReadFile(`tasks/${taskNumber}.json`)
+  const task = await getIssue(taskNumber)
+  return `You are being invoked to revise the acceptance criteria for Task #${taskNumber}.
+
+The Tester or a human has flagged that the current acceptance criteria need updating.
+Read the issue comments carefully to understand what needs to change, then revise
+the task body and restart the Architect + Tester sign-off process.
 
 ## Task #${taskNumber}
 ${task}

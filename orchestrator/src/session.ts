@@ -16,9 +16,9 @@ interface Session {
 }
 
 const sessionKey = (params: InvocationParams): string => {
-  const { agent, issueNumber, prNumber, architectMode, testerMode, pmMode } = params
+  const { agent, issueNumber, prNumber, architectMode, testerMode, pmMode, requirementsMode } = params
   const ref = issueNumber ?? prNumber ?? 'noref'
-  const mode = architectMode ?? testerMode ?? pmMode ?? 'default'
+  const mode = architectMode ?? testerMode ?? pmMode ?? requirementsMode ?? 'default'
   return `${agent}-${ref}-${mode}`
 }
 

@@ -39,6 +39,14 @@ export const closeMilestone = async (milestoneNumber: number): Promise<string> =
   return `Milestone #${milestoneNumber} closed`
 }
 
+export const updateIssue = async (
+  issueNumber: number,
+  fields: { title?: string; body?: string },
+): Promise<string> => {
+  await octokit.issues.update({ owner: OWNER, repo: REPO, issue_number: issueNumber, ...fields })
+  return `Issue #${issueNumber} updated`
+}
+
 export const createIssue = async (
   title: string,
   body: string,
