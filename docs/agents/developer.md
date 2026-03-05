@@ -70,7 +70,7 @@ Only proceed to Step 4 once you are confident the task is clear and unblocked.
 
 ### Step 6 — Update task state
 Update `/tasks/{issue-id}.json`:
-- Set `status` to `"in_review"`
+- Set `status` to `"in_review"` (valid values: `in_requirements` → `ready_for_development` → `in_progress` → `in_review` → `complete`)
 - Append to `conversation_log`:
   ```json
   {

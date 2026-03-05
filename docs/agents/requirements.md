@@ -60,6 +60,8 @@ about to create.
      }
    }
    ```
+   Valid status values (use exactly these strings, no variations):
+   `in_requirements` → `ready_for_development` → `in_progress` → `in_review` → `complete`
 
 ### Step 4 — Get Architect sign-off
 1. Post a comment on the task issue requesting Architect review:
