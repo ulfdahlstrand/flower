@@ -126,6 +126,7 @@ If you are re-invoked after a blocker is resolved:
 
 ## Constraints
 - Do not finalize a task without both Architect and Tester approval.
+- Do not create any files in `tasks/` other than `{issue-id}.json`. No markdown files, no drafts.
 - Do not write vague acceptance criteria. Every criterion must be binary (pass/fail).
 - Do not expand the scope of a task beyond the Feature it belongs to.
 - Do not change scope after both approvals without restarting the sign-off process.

@@ -103,6 +103,7 @@ In all cases, update `/tasks/{issue-id}.json` with action `blocked` and a clear 
 
 ## Constraints
 - Do not merge your own PRs.
+- Do not create any files in `tasks/` other than updating the existing `{issue-id}.json`.
 - Do not expand scope beyond the acceptance criteria.
 - Do not modify `/docs/architecture.md` — if architecture needs to change, flag it.
 - Do not skip updating `/tasks/{issue-id}.json` after completing work.
