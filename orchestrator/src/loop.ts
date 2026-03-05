@@ -4,6 +4,7 @@ import { getAgentConfig } from './agents.js'
 import { buildContext } from './context.js'
 import { getToolSchemas, executeTool } from './tools/index.js'
 import { saveSession, loadSession, clearSession } from './session.js'
+import { needsCompaction, compactMessages } from './compaction.js'
 import { postComment } from './tools/github.js'
 import type { InvocationParams } from './types.js'
 
@@ -117,6 +118,13 @@ export const runAgent = async (params: InvocationParams): Promise<void> => {
       )
 
       messages.push({ role: 'user', content: toolResults })
+
+      if (needsCompaction(messages)) {
+        console.log(`[${agent}] Compacting session history...`)
+        messages = await compactMessages(params, messages)
+        saveSession(params, messages, backoffIndex)
+        console.log(`[${agent}] Session compacted`)
+      }
       continue
     }
 

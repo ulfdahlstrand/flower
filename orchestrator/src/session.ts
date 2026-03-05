@@ -15,7 +15,7 @@ interface Session {
   updatedAt: string
 }
 
-const sessionKey = (params: InvocationParams): string => {
+export const sessionKey = (params: InvocationParams): string => {
   const { agent, issueNumber, prNumber, architectMode, testerMode, pmMode, requirementsMode } = params
   const ref = issueNumber ?? prNumber ?? 'noref'
   const mode = architectMode ?? testerMode ?? pmMode ?? requirementsMode ?? 'default'
@@ -44,6 +44,20 @@ export const loadSession = (params: InvocationParams): Session | null => {
   } catch {
     return null
   }
+}
+
+export const archiveSession = (params: InvocationParams, messages: Anthropic.MessageParam[]): string => {
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  const key = sessionKey(params)
+  let index = 1
+  while (fs.existsSync(path.join(SESSIONS_DIR, `${key}-archive-${index}.json`))) index++
+  const filename = `${key}-archive-${index}.json`
+  fs.writeFileSync(
+    path.join(SESSIONS_DIR, filename),
+    JSON.stringify({ params, archivedAt: new Date().toISOString(), messages }, null, 2),
+    'utf-8',
+  )
+  return filename
 }
 
 export const clearSession = (params: InvocationParams): void => {
