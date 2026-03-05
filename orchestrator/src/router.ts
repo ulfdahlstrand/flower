@@ -1,5 +1,6 @@
 import { runAgent } from './loop.js'
-import { closeIssue, listChildIssues, postComment } from './tools/github.js'
+import { addLabel, closeIssue, listChildIssues, postComment } from './tools/github.js'
+import { readFile, writeFile } from './tools/files.js'
 import { loadSession } from './session.js'
 import type { InvocationParams } from './types.js'
 
@@ -26,6 +27,40 @@ export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promi
   }
   console.log(`[router] Dispatching ${params.agent} for issue #${issue.number}`)
   await runAgent(params)
+}
+
+export const routePrMerged = async (prNumber: number, body?: string): Promise<void> => {
+  const taskNumber = extractIssueRef(body)
+  if (!taskNumber) {
+    console.log(`[router] PR #${prNumber} merged — no task ref in body, skipping`)
+    return
+  }
+
+  console.log(`[router] PR #${prNumber} merged — closing task #${taskNumber}`)
+
+  // Update tasks/{id}.json status to complete
+  try {
+    const raw = readFile(`tasks/${taskNumber}.json`)
+    const taskState = JSON.parse(raw)
+    taskState.status = 'complete'
+    taskState.conversation_log = [
+      ...(taskState.conversation_log ?? []),
+      {
+        agent: 'orchestrator',
+        timestamp: new Date().toISOString(),
+        action: 'pr_merged',
+        summary: `PR #${prNumber} merged. Task complete.`,
+      },
+    ]
+    writeFile(`tasks/${taskNumber}.json`, JSON.stringify(taskState, null, 2))
+  } catch {
+    console.warn(`[router] Could not update tasks/${taskNumber}.json — file may not exist`)
+  }
+
+  // Apply status:done label (GitHub auto-closes the issue via "Closes #X")
+  await addLabel(taskNumber, 'status:done').catch(err =>
+    console.error(`[router] Failed to add status:done to #${taskNumber}:`, err),
+  )
 }
 
 export const routeIssueClosed = async (issueNumber: number, body?: string): Promise<void> => {

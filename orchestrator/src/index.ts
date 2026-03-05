@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
 import { PORT, WEBHOOK_SECRET } from './config.js'
-import { routeIssueLabeled, routePrLabeled, routeIssueComment, routeIssueClosed } from './router.js'
+import { routeIssueLabeled, routePrLabeled, routeIssueComment, routeIssueClosed, routePrMerged } from './router.js'
 import { runAgent } from './loop.js'
 import type { InvocationParams } from './types.js'
 
@@ -50,6 +50,14 @@ const handleEvent = async (event: string, payload: Record<string, unknown>): Pro
     const issue = payload.issue as { number: number; labels: Array<{ name?: string }> }
     const label = (payload.label as { name: string }).name
     await routeIssueLabeled(issue, label)
+    return
+  }
+
+  if (event === 'pull_request' && payload.action === 'closed') {
+    const pr = payload.pull_request as { number: number; merged: boolean; body?: string }
+    if (pr.merged) {
+      await routePrMerged(pr.number, pr.body)
+    }
     return
   }
 
