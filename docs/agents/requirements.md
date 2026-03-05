@@ -69,14 +69,29 @@ about to create.
 4. If **Approved with notes**: incorporate the notes into the task body and acceptance criteria before proceeding.
 5. Append the Architect's response to `conversation_log` in `/tasks/{issue-id}.json`.
 
-### Step 5 — Get Tester sign-off
+### Step 5 — Self-review for testability before Tester sign-off
+Before sending to the Tester, go through each acceptance criterion and answer:
+1. Can a script or automated test verify this without a running browser or human observation?
+2. Does it describe a concrete, observable output — not intent, speed, or aesthetics?
+3. Is it fully within the scope of this task, with no dependency on future tasks?
+
+Rewrite any criterion that fails these checks. Common patterns to fix:
+- "The page loads quickly" → specify a measurable threshold or remove
+- "The UI is intuitive" → replace with a concrete behaviour (e.g. error shown within 200ms)
+- "Works correctly" → describe exactly what correct means
+- "Users can see X" → replace with "Running `curl` / the test command returns X"
+- Anything requiring a live browser → replace with a static file check, HTTP response, or CLI output
+
+Only proceed to Step 6 once every criterion would pass the Tester's three questions.
+
+### Step 6 — Get Tester sign-off
 1. Update the label to `agent:tester` and post:
    `[REQUIREMENTS] Architect approved. Requesting Tester review for testability.`
 2. The Tester will respond with: Approved / Needs revision.
 3. If **Needs revision**: revise acceptance criteria based on Tester feedback, then repeat Step 4.
 4. Append the Tester's response to `conversation_log` in `/tasks/{issue-id}.json`.
 
-### Step 6 — Finalize the task
+### Step 7 — Finalize the task
 1. Once both Architect and Tester have approved:
    - Update label to `agent:developer`
    - Post: `[REQUIREMENTS] Task finalized. Architect and Tester have approved. Ready for development.`
