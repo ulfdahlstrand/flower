@@ -1,5 +1,5 @@
 import { runAgent } from './loop.js'
-import { addLabel, removeLabel, closeIssue, listChildIssues, postComment } from './tools/github.js'
+import { addLabel, removeLabel, closeIssue, fetchAllIssues, listChildIssues, postComment } from './tools/github.js'
 import { readFile, writeFile } from './tools/files.js'
 import { loadSession } from './session.js'
 import type { InvocationParams } from './types.js'
@@ -16,6 +16,37 @@ const extractIssueRef = (body?: string): number | undefined => {
   if (!body) return undefined
   const match = body.match(/(?:Closes|Fixes|Resolves|Part of)\s+#(\d+)/i)
   return match ? parseInt(match[1], 10) : undefined
+}
+
+export const runStartupCascadeCheck = async (): Promise<void> => {
+  console.log('[startup] Running cascade close check...')
+
+  const allIssues = await fetchAllIssues()
+
+  // Build parent → children map from "Part of #X" in issue bodies
+  const childrenByParent = new Map<number, typeof allIssues>()
+  for (const issue of allIssues) {
+    const match = issue.body?.match(/Part of #(\d+)/i)
+    if (!match) continue
+    const parentNumber = parseInt(match[1], 10)
+    const existing = childrenByParent.get(parentNumber) ?? []
+    existing.push(issue)
+    childrenByParent.set(parentNumber, existing)
+  }
+
+  // Close any open parent whose children are all closed
+  for (const [parentNumber, children] of childrenByParent) {
+    const parent = allIssues.find(i => i.number === parentNumber)
+    if (!parent || parent.state !== 'open') continue
+    if (children.length === 0) continue
+    if (children.every(c => c.state === 'closed')) {
+      console.log(`[startup] #${parentNumber} has all children closed — closing`)
+      await closeIssue(parentNumber)
+      await postComment(parentNumber, '[PM] All child issues are complete. Closing.')
+    }
+  }
+
+  console.log('[startup] Cascade close check complete')
 }
 
 export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promise<void> => {

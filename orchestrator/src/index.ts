@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
 import { PORT, WEBHOOK_SECRET } from './config.js'
-import { routeIssueLabeled, routePrLabeled, routeIssueComment, routeIssueClosed, routePrMerged } from './router.js'
+import { routeIssueLabeled, routePrLabeled, routeIssueComment, routeIssueClosed, routePrMerged, runStartupCascadeCheck } from './router.js'
 import { runAgent } from './loop.js'
 import type { InvocationParams } from './types.js'
 
@@ -106,4 +106,7 @@ app.post('/trigger', (req: Request, res: Response) => {
 
 app.listen(PORT, () => {
   console.log(`Flower orchestrator listening on port ${PORT}`)
+  runStartupCascadeCheck().catch(err =>
+    console.error('[startup] Cascade check failed:', err),
+  )
 })

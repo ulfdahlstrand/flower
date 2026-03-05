@@ -44,6 +44,18 @@ export const closeIssue = async (issueNumber: number): Promise<string> => {
   return `Issue #${issueNumber} closed`
 }
 
+export const fetchAllIssues = async (): Promise<Array<{ number: number; state: string; body: string | null }>> => {
+  const issues = await octokit.paginate(octokit.issues.listForRepo, {
+    owner: OWNER,
+    repo: REPO,
+    state: 'all',
+    per_page: 100,
+  })
+  return issues
+    .filter(i => !i.pull_request)
+    .map(i => ({ number: i.number, state: i.state, body: i.body ?? null }))
+}
+
 export const listChildIssues = async (parentNumber: number): Promise<string> => {
   const { data } = await octokit.issues.listForRepo({
     owner: OWNER,
