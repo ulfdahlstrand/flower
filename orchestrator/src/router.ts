@@ -1,8 +1,25 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { anthropic } from './config.js'
 import { runAgent } from './loop.js'
 import { addLabel, removeLabel, closeIssue, fetchAllIssues, listChildIssues, postComment } from './tools/github.js'
 import { readFile, writeFile } from './tools/files.js'
-import { loadSession } from './session.js'
+import { loadSession, clearSession } from './session.js'
+import { REPO_PATH } from './config.js'
 import type { InvocationParams } from './types.js'
+
+const isRetestRequest = async (comment: string): Promise<boolean> => {
+  const response = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 16,
+    messages: [{
+      role: 'user',
+      content: `Does this comment ask the team to re-run tests or retest? Reply with only YES or NO.\n\nComment: "${comment}"`,
+    }],
+  })
+  const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : ''
+  return text.toUpperCase().startsWith('YES')
+}
 
 type Label = { name?: string }
 type Issue = { number: number; labels: Label[] }
@@ -144,6 +161,54 @@ export const routeIssueComment = async (issue: Issue, commentBody: string): Prom
   await runAgent({ ...params, humanComment: commentBody })
 }
 
+export const routePrComment = async (pr: PullRequest & { body?: string }, commentBody: string): Promise<void> => {
+  const labels = labelNames(pr.labels)
+
+  if (!labels.includes('agent:developer') && !labels.includes('agent:tester')) {
+    console.log(`[router] PR #${pr.number} comment — no agent:developer or agent:tester label, ignoring`)
+    return
+  }
+
+  const shouldRetest = await isRetestRequest(commentBody)
+  if (!shouldRetest) {
+    console.log(`[router] PR #${pr.number} comment — not a retest request, ignoring`)
+    return
+  }
+
+  const taskNumber = extractIssueRef(pr.body)
+
+  if (labels.includes('agent:developer')) {
+    console.log(`[router] PR #${pr.number} comment — swapping agent:developer → agent:tester and re-running`)
+    await removeLabel(pr.number, 'agent:developer')
+    await addLabel(pr.number, 'agent:tester')
+    const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
+    clearSession(params)
+    await runAgent(params)
+    return
+  }
+
+  if (labels.includes('agent:tester')) {
+    console.log(`[router] PR #${pr.number} comment — re-running tester`)
+    const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
+    clearSession(params)
+    await runAgent(params)
+    return
+  }
+}
+
+export const routePrSynchronize = async (pr: PullRequest): Promise<void> => {
+  const labels = labelNames(pr.labels)
+  if (!labels.includes('agent:tester')) {
+    console.log(`[router] PR #${pr.number} pushed — no agent:tester label, skipping`)
+    return
+  }
+  const taskNumber = extractIssueRef(pr.body)
+  const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
+  console.log(`[router] PR #${pr.number} new commit — clearing tester session and re-running`)
+  clearSession(params)
+  await runAgent(params)
+}
+
 export const routePrLabeled = async (pr: PullRequest, addedLabel: string): Promise<void> => {
   const params = resolvePrParams(pr, addedLabel)
   if (!params) {
@@ -164,7 +229,11 @@ const resolveIssueParams = (
   const isTask = currentLabels.includes('type:task')
 
   if (addedLabel === 'agent:architect' && isEpic) return { agent: 'architect', issueNumber, architectMode: 'epic_breakdown' }
-  if (addedLabel === 'agent:architect' && isTask) return { agent: 'architect', issueNumber, architectMode: 'task_review' }
+  if (addedLabel === 'agent:architect' && isTask) {
+    // Distinguish architect's own architectural tasks (no tasks/{id}.json) from requirements-reviewed tasks (have tasks/{id}.json)
+    const hasTaskFile = fs.existsSync(path.resolve(REPO_PATH, `tasks/${issueNumber}.json`))
+    return { agent: 'architect', issueNumber, architectMode: hasTaskFile ? 'task_review' : 'architectural_task' }
+  }
   if (addedLabel === 'agent:requirements' && isFeature) return { agent: 'requirements', issueNumber, requirementsMode: 'feature' }
   if (addedLabel === 'agent:requirements' && isTask) return { agent: 'requirements', issueNumber, requirementsMode: 'task_revision' }
   if (addedLabel === 'agent:developer' && isTask) return { agent: 'developer', issueNumber }

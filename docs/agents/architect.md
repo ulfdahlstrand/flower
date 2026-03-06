@@ -45,7 +45,30 @@ When invoked for **PR review**, you will be given:
    `[ARCHITECT] Broken into N features: #x, #y, #z. See comment for constraints.`
    Include any constraints or patterns the Requirements Specialist must follow.
 
-### On task review (called by Requirements Specialist)
+### On architectural task (your own decision tasks)
+These are tasks you created during epic breakdown to resolve an architectural gap or conflict.
+There is no PR required — your output is updated documentation.
+
+1. Read the task description to understand what decision needs to be made.
+2. Read `/docs/architecture.md` and `/docs/tech-decisions.md` for current context.
+3. Make the decision and update `/docs/architecture.md` accordingly.
+4. Append the decision to `/docs/tech-decisions.md` using the standard format.
+5. Post a comment on the task:
+   `[ARCHITECT] Decision made. <one sentence summary>. architecture.md and tech-decisions.md updated.`
+6. Close the task issue.
+
+Do **not** hand off to tester or developer — this task is complete when the docs are updated and the issue is closed.
+
+---
+
+### On task review (called by Requirements Specialist or Developer)
+
+**First, check whether the Developer was blocked:**
+Read `/tasks/{issue-id}.json` and look for the most recent `conversation_log` entry.
+- If the last entry has `"agent": "developer"` and `"action": "blocked"`, this is a **developer-blocked re-review** (see below).
+- Otherwise, this is a normal requirements-driven review.
+
+**Normal task review:**
 1. Read the drafted Task issue.
 2. Read the relevant sections of `/docs/architecture.md`.
 3. Answer: does this task fit within the current architecture without modification?
@@ -58,6 +81,20 @@ When invoked for **PR review**, you will be given:
    - **No, architectural change required** → post `[ARCHITECT] Blocked. This task requires an architectural decision first. Creating architectural task #<new-issue>.`
      Create the architectural task. Update `/tasks/{issue-id}.json` with action `blocked`, reason in summary.
      Then: remove label `agent:architect` and add label `agent:requirements` on the task issue.
+
+**Developer-blocked re-review:**
+The Developer was blocked because a required library or pattern is missing from `architecture.md`.
+1. Read the developer's blocked entry to understand what is missing.
+2. Evaluate whether the requested dependency/pattern is appropriate for this project.
+   - **Approved** → update `/docs/architecture.md` to include the new library/pattern.
+     Also append an entry to `/docs/tech-decisions.md` using the standard format.
+     Post: `[ARCHITECT] Updated architecture.md to include <library/pattern>. Developer may now proceed.`
+     Update `/tasks/{issue-id}.json` with action `architecture_updated`, summary of what was added.
+     Then: remove label `agent:architect` and add label `agent:developer` on the task issue.
+     Do **not** add `agent:tester` — testability was already approved in the previous review cycle.
+   - **Rejected** → the dependency is not appropriate. Post: `[ARCHITECT] The requested dependency <name> is not approved for this project. <reason>.`
+     Update `/tasks/{issue-id}.json` with action `blocked`, reason in summary.
+     Then: remove label `agent:architect` and add label `agent:requirements` to revise the task approach.
 
 ### On PR review
 1. Read the PR diff.

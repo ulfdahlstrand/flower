@@ -12,6 +12,7 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
     case 'architect':
       if (architectMode === 'epic_breakdown') return buildArchitectEpicBreakdown(issueNumber!)
       if (architectMode === 'task_review') return buildArchitectTaskReview(issueNumber!)
+      if (architectMode === 'architectural_task') return buildArchitectArchitecturalTask(issueNumber!)
       if (architectMode === 'pr_review') return buildArchitectPrReview(prNumber!, issueNumber!)
       throw new Error('Architect requires architectMode')
 
@@ -82,6 +83,25 @@ const buildArchitectEpicBreakdown = async (epicNumber: number): Promise<string> 
 
 ## Epic #${epicNumber}
 ${epic}
+
+## Current Architecture
+${architecture}
+
+## Tech Decisions
+${decisions}`
+}
+
+const buildArchitectArchitecturalTask = async (taskNumber: number): Promise<string> => {
+  const architecture = safeReadFile('docs/architecture.md')
+  const decisions = safeReadFile('docs/tech-decisions.md')
+  const task = await getIssue(taskNumber)
+  return `You are being invoked to execute Architectural Task #${taskNumber}.
+
+This is an architectural task YOU created. Your job is to make the decision described, update
+the relevant documentation, and close the task. No PR is required.
+
+## Task #${taskNumber}
+${task}
 
 ## Current Architecture
 ${architecture}

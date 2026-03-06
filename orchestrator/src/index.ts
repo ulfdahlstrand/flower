@@ -1,8 +1,9 @@
 import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
 import { PORT, WEBHOOK_SECRET } from './config.js'
-import { routeIssueLabeled, routePrLabeled, routeIssueComment, routeIssueClosed, routePrMerged, runStartupCascadeCheck } from './router.js'
+import { routeIssueLabeled, routePrLabeled, routeIssueComment, routePrComment, routeIssueClosed, routePrMerged, routePrSynchronize, runStartupCascadeCheck } from './router.js'
 import { runAgent } from './loop.js'
+import { clearSession } from './session.js'
 import type { InvocationParams } from './types.js'
 
 const app = express()
@@ -61,6 +62,12 @@ const handleEvent = async (event: string, payload: Record<string, unknown>): Pro
     return
   }
 
+  if (event === 'pull_request' && payload.action === 'synchronize') {
+    const pr = payload.pull_request as { number: number; labels: Array<{ name?: string }>; body?: string }
+    await routePrSynchronize(pr)
+    return
+  }
+
   if (event === 'pull_request' && payload.action === 'labeled') {
     const pr = payload.pull_request as { number: number; labels: Array<{ name?: string }>; body?: string }
     const label = (payload.label as { name: string }).name
@@ -70,7 +77,7 @@ const handleEvent = async (event: string, payload: Record<string, unknown>): Pro
 
   if (event === 'issue_comment' && payload.action === 'created') {
     const comment = payload.comment as { user: { type: string }; body: string }
-    const issue = payload.issue as { number: number; labels: Array<{ name?: string }>; pull_request?: unknown }
+    const issue = payload.issue as { number: number; labels: Array<{ name?: string }>; body?: string; pull_request?: unknown }
     if (comment.user.type === 'Bot') {
       console.log(`[webhook] Ignoring bot comment on #${issue.number}`)
       return
@@ -80,7 +87,7 @@ const handleEvent = async (event: string, payload: Record<string, unknown>): Pro
       return
     }
     if (issue.pull_request) {
-      console.log(`[webhook] Ignoring comment on PR #${issue.number}`)
+      await routePrComment(issue, comment.body)
       return
     }
     await routeIssueComment(issue, comment.body)
@@ -98,7 +105,8 @@ app.post('/trigger', (req: Request, res: Response) => {
     res.status(400).json({ error: 'Request body must include at least { agent }' })
     return
   }
-  res.status(202).json({ message: `Dispatching ${params.agent}`, params })
+  clearSession(params)
+  res.status(202).json({ message: `Dispatching ${params.agent} (fresh)`, params })
   runAgent(params).catch(err => {
     console.error(`[trigger] Unhandled error for agent "${params.agent}":`, err)
   })

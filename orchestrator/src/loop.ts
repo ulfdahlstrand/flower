@@ -61,7 +61,7 @@ export const runAgent = async (params: InvocationParams): Promise<void> => {
     try {
       response = await anthropic.messages.create({
         model: config.model,
-        max_tokens: 4096,
+        max_tokens: 16384,
         system: config.systemPrompt,
         tools,
         messages,

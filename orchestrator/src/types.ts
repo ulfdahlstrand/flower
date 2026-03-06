@@ -6,7 +6,7 @@ export type AgentName =
   | 'tester'
   | 'reviewer'
 
-export type ArchitectMode = 'epic_breakdown' | 'task_review' | 'pr_review'
+export type ArchitectMode = 'epic_breakdown' | 'task_review' | 'architectural_task' | 'pr_review'
 export type TesterMode = 'pre_dev' | 'post_dev'
 export type PmMode = 'init' | 'monitor'
 export type RequirementsMode = 'feature' | 'task_revision'

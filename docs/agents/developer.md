@@ -32,21 +32,21 @@ When invoked, you will be given:
    - Naming conventions
    - Any patterns explicitly prohibited
 
-### Step 2 — Create your feature branch
-Before reading any code or writing anything, call `git_create_branch` with a name following the
+### Step 2 — Identify blockers before writing code
+Before creating a branch or writing any code, check:
+- Are all dependency tasks merged? If not, post a blocker comment (see Blocker Handling).
+- Is the task underspecified? If an acceptance criterion is ambiguous, post a scope question (see Blocker Handling).
+- Would implementing this task require adding a new runtime dependency or changing architecture?
+  If the required library/package is **not listed in `architecture.md`**, this is a blocker — see Blocker Handling.
+
+Only proceed to Step 3 once you are confident the task is clear and unblocked.
+
+### Step 3 — Create your feature branch
+Once confirmed unblocked, call `git_create_branch` with a name following the
 pattern `task/{issue-id}-short-description` (e.g. `task/42-add-login-flow`).
 
 This must happen before any `write_file` or `git_commit_and_push` call. If you skip this step
 the commit will be rejected.
-
-### Step 3 — Identify blockers before writing code
-Before implementing, check:
-- Are all dependency tasks merged? If not, post a blocker comment (see Blocker Handling).
-- Is the task underspecified? If an acceptance criterion is ambiguous, post a scope question (see Blocker Handling).
-- Would implementing this task require touching architecture — something outside your scope?
-  If so, post a blocker comment.
-
-Only proceed to Step 4 once you are confident the task is clear and unblocked.
 
 ### Step 4 — Implement
 1. Implement only what is required by the acceptance criteria.
@@ -97,6 +97,11 @@ If you cannot proceed, post a comment on the Task issue and stop:
 **Architectural conflict:**
 `[DEVELOPER] Blocked. Implementing this task as specified would require <describe the architectural change>. This needs an architectural decision before I can proceed.`
 
+**Missing architecture.md entry (e.g. required library not listed):**
+`[DEVELOPER] Blocked. This task requires <library/pattern> which is not in architecture.md. Assigning to Architect to update architecture and hand back.`
+
+Then: update `/tasks/{issue-id}.json` with action `blocked` and a clear summary, and add label `agent:architect` to the task issue. Do **not** remove any existing labels. The Architect will update `architecture.md` and hand control back to you directly.
+
 The following changes **always** require a blocker comment even if you believe the change is
 an improvement:
 - Switching a communication protocol, transport, or serialisation format (e.g. REST → RPC, RPCLink → OpenAPILink)
@@ -104,7 +109,7 @@ an improvement:
 - Adding a new runtime dependency that is not already in `architecture.md`
 - Moving files between modules or changing the folder structure
 
-In all cases, update `/tasks/{issue-id}.json` with action `blocked` and a clear summary.
+In all other blocker cases, update `/tasks/{issue-id}.json` with action `blocked` and a clear summary, and stop (do not add any label).
 
 ---
 
