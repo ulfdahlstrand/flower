@@ -4,7 +4,7 @@ import { getAgentConfig } from './agents.js'
 import { buildContext } from './context.js'
 import { getToolSchemas, executeTool } from './tools/index.js'
 import { saveSession, loadSession, clearSession } from './session.js'
-import { needsCompaction, compactMessages } from './compaction.js'
+import { needsCompaction, compactMessages, BASE_COMPACTION_THRESHOLD } from './compaction.js'
 import { postComment } from './tools/github.js'
 import type { InvocationParams } from './types.js'
 
@@ -120,6 +120,10 @@ export const runAgent = async (params: InvocationParams): Promise<void> => {
   }
 
   let iterations = 0
+  // Adaptive compaction threshold: raised after each compaction so that a
+  // "recent" block that is itself larger than the base threshold does not
+  // trigger compaction again on the very next iteration.
+  let compactionThreshold = BASE_COMPACTION_THRESHOLD
 
   while (iterations < MAX_ITERATIONS) {
     iterations++
@@ -186,11 +190,13 @@ export const runAgent = async (params: InvocationParams): Promise<void> => {
 
       messages.push({ role: 'user', content: toolResults })
 
-      if (needsCompaction(messages)) {
-        console.log(`[${agent}] Compacting session history...`)
+      if (needsCompaction(messages, compactionThreshold)) {
+        console.log(`[${agent}] Compacting session history (threshold: ${compactionThreshold})...`)
         messages = await compactMessages(params, messages)
+        const postSize = JSON.stringify(messages).length
+        compactionThreshold = Math.max(BASE_COMPACTION_THRESHOLD, Math.ceil(postSize * 1.5))
         saveSession(params, messages, backoffIndex)
-        console.log(`[${agent}] Session compacted`)
+        console.log(`[${agent}] Session compacted — post-size: ${postSize}, next threshold: ${compactionThreshold}`)
       }
       continue
     }

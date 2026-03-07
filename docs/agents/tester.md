@@ -75,7 +75,11 @@ Your job is to verify the implementation against the acceptance criteria.
    List each failing criterion, what was tested, and what the actual behavior was.
    Update `/tasks/{issue-id}.json` with action `tests_failed`, failures listed in summary.
    Do NOT approve a PR with failing tests.
-   Then: remove label `agent:tester` and add label `agent:developer` on the PR.
+   Then:
+   - Remove label `agent:tester` from the PR, add label `agent:developer` to the PR
+     (keeps the PR labelled so retest comments are routed correctly).
+   - Add label `agent:developer` to the **task issue** (not the PR) — this is what
+     triggers the Developer Agent to pick up the fix.
 
    **Untestable at runtime:**
    If a criterion cannot be tested due to missing infrastructure, data, or environment:

@@ -3,8 +3,11 @@ import { anthropic } from './config.js'
 import { archiveSession } from './session.js'
 import type { InvocationParams } from './types.js'
 
-// Trigger compaction when the serialised message history exceeds this size
-const COMPACTION_THRESHOLD = 60_000 // chars (~15k tokens)
+// Base compaction threshold. After each compaction the active threshold is
+// raised to max(BASE_COMPACTION_THRESHOLD, postCompactionSize * 1.5) so that
+// a session whose "recent" block is itself larger than the base threshold does
+// not compact again on the very next iteration.
+export const BASE_COMPACTION_THRESHOLD = 60_000 // chars (~15k tokens)
 
 // Number of recent messages to keep as raw history after compaction.
 // Must be even so the kept block ends on a user (tool_results) message,
@@ -12,8 +15,8 @@ const COMPACTION_THRESHOLD = 60_000 // chars (~15k tokens)
 // valid alternating user/assistant conversation after the compacted user message.
 const KEEP_RECENT = 10
 
-export const needsCompaction = (messages: Anthropic.MessageParam[]): boolean =>
-  JSON.stringify(messages).length > COMPACTION_THRESHOLD
+export const needsCompaction = (messages: Anthropic.MessageParam[], threshold: number): boolean =>
+  JSON.stringify(messages).length > threshold
 
 export const compactMessages = async (
   params: InvocationParams,
