@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { anthropic } from './config.js'
-import { runAgent } from './loop.js'
+import { enqueueAgent, isAgentPendingForPr } from './queue.js'
 import { addLabel, removeLabel, closeIssue, fetchAllIssues, listChildIssues, postComment } from './tools/github.js'
 import { readFile, writeFile } from './tools/files.js'
 import { loadSession, clearSession } from './session.js'
@@ -83,8 +83,8 @@ export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promi
     console.log(`[router] No agent route for issue #${issue.number} with label "${addedLabel}"`)
     return
   }
-  console.log(`[router] Dispatching ${params.agent} for issue #${issue.number}`)
-  await runAgent(params)
+  console.log(`[router] Enqueueing ${params.agent} for issue #${issue.number}`)
+  enqueueAgent(params)
 }
 
 export const routePrMerged = async (prNumber: number, body?: string): Promise<void> => {
@@ -157,8 +157,8 @@ export const routeIssueComment = async (issue: Issue, commentBody: string): Prom
     console.log(`[router] Session paused for #${issue.number} — comment must include "continue" to resume`)
     return
   }
-  console.log(`[router] Comment on #${issue.number} — re-invoking ${params.agent}`)
-  await runAgent({ ...params, humanComment: commentBody })
+  console.log(`[router] Comment on #${issue.number} — enqueueing ${params.agent}`)
+  enqueueAgent({ ...params, humanComment: commentBody })
 }
 
 export const routePrComment = async (pr: PullRequest & { body?: string }, commentBody: string): Promise<void> => {
@@ -183,7 +183,7 @@ export const routePrComment = async (pr: PullRequest & { body?: string }, commen
     await addLabel(pr.number, 'agent:tester')
     const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
     clearSession(params)
-    await runAgent(params)
+    enqueueAgent(params)
     return
   }
 
@@ -191,7 +191,7 @@ export const routePrComment = async (pr: PullRequest & { body?: string }, commen
     console.log(`[router] PR #${pr.number} comment — re-running tester`)
     const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
     clearSession(params)
-    await runAgent(params)
+    enqueueAgent(params)
     return
   }
 }
@@ -202,11 +202,15 @@ export const routePrSynchronize = async (pr: PullRequest): Promise<void> => {
     console.log(`[router] PR #${pr.number} pushed — no agent:tester label, skipping`)
     return
   }
+  if (isAgentPendingForPr('tester', pr.number)) {
+    console.log(`[router] PR #${pr.number} pushed — tester already running/queued, skipping (agent self-commit)`)
+    return
+  }
   const taskNumber = extractIssueRef(pr.body)
   const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
   console.log(`[router] PR #${pr.number} new commit — clearing tester session and re-running`)
   clearSession(params)
-  await runAgent(params)
+  enqueueAgent(params)
 }
 
 export const routePrLabeled = async (pr: PullRequest, addedLabel: string): Promise<void> => {
@@ -215,8 +219,8 @@ export const routePrLabeled = async (pr: PullRequest, addedLabel: string): Promi
     console.log(`[router] No agent route for PR #${pr.number} with label "${addedLabel}"`)
     return
   }
-  console.log(`[router] Dispatching ${params.agent} for PR #${pr.number}`)
-  await runAgent(params)
+  console.log(`[router] Enqueueing ${params.agent} for PR #${pr.number}`)
+  enqueueAgent(params)
 }
 
 const resolveIssueParams = (

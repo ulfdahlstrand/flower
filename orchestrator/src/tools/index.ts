@@ -167,6 +167,42 @@ const AGENT_SCHEMAS: Record<string, Tool[]> = {
   ],
   architect: [
     {
+      name: 'git_create_branch',
+      description: 'Fetch origin/main, reset local main to it, then create and check out a new branch. Use branch name pattern: arch/{issue-id}-short-description',
+      input_schema: {
+        type: 'object',
+        properties: { branch_name: { type: 'string' } },
+        required: ['branch_name'],
+      },
+    },
+    {
+      name: 'git_commit_and_push',
+      description: 'Stage files, commit with a message, and push the branch. Only commit files under docs/.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          files: { type: 'array', items: { type: 'string' } },
+          message: { type: 'string' },
+        },
+        required: ['files', 'message'],
+      },
+    },
+    {
+      name: 'github_create_pr',
+      description: 'Open a pull request.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          body: { type: 'string' },
+          head: { type: 'string' },
+          base: { type: 'string' },
+          labels: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['title', 'body', 'head', 'base'],
+      },
+    },
+    {
       name: 'github_create_issue',
       description: 'Create a Feature or architectural task issue.',
       input_schema: {
@@ -417,6 +453,7 @@ const HANDLERS: Record<string, ToolHandler> = {
   git_create_branch: ({ branch_name }) => git.createBranch(branch_name as string),
   git_checkout_branch: ({ branch_name }) => git.checkoutBranch(branch_name as string),
   git_commit_and_push: ({ files: f, message }) => git.commitAndPush(f as string[], message as string),
+
   run_tests: ({ command }) => git.runTests(command as string | undefined),
 }
 

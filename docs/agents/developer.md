@@ -11,7 +11,7 @@ You operate in the **execution tier**.
 When invoked, you will be given:
 - The Task issue body and all comments
 - The `/tasks/{issue-id}.json` file for this task
-- The current `/docs/architecture.md`
+- The architecture index (`/docs/architecture.md`) — use `read_file` to load the relevant sub-document for your task's domain
 - The current state of the repository (file tree and relevant file contents)
 
 ---

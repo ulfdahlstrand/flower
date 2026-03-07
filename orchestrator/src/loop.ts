@@ -10,6 +10,50 @@ import type { InvocationParams } from './types.js'
 
 const MAX_ITERATIONS = 50
 
+// Validate and repair a loaded session's message sequence.
+// The old index-parity compaction bug could produce a session where a user
+// message containing tool_results appears without the preceding assistant
+// tool_use message (because the cut point landed between them). This causes
+// a 400 BadRequestError from the API.
+//
+// Strategy: walk the message array and collect every tool_use id that each
+// assistant message declares. When we reach a user message, any tool_result
+// blocks whose tool_use_id is NOT in the immediately preceding assistant's
+// tool_use set are orphaned — strip the entire user message (it's safer than
+// partially reconstructing it).
+const repairMessages = (messages: Anthropic.MessageParam[], agent: string): Anthropic.MessageParam[] => {
+  const repaired: Anthropic.MessageParam[] = []
+  let prevAssistantToolIds = new Set<string>()
+
+  for (const msg of messages) {
+    if (msg.role === 'assistant') {
+      const ids = Array.isArray(msg.content)
+        ? msg.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use').map(b => b.id)
+        : []
+      prevAssistantToolIds = new Set(ids)
+      repaired.push(msg)
+    } else {
+      // user message — check for orphaned tool_results
+      const content = msg.content
+      if (Array.isArray(content) && content.some(b => typeof b === 'object' && 'type' in b && b.type === 'tool_result')) {
+        const orphaned = content.filter(
+          b => typeof b === 'object' && 'type' in b && b.type === 'tool_result' &&
+               !prevAssistantToolIds.has((b as Anthropic.ToolResultBlockParam).tool_use_id),
+        )
+        if (orphaned.length > 0) {
+          console.warn(`[${agent}] Dropping orphaned tool_result message (${orphaned.length} orphan(s)) — session was corrupted by old compaction bug`)
+          prevAssistantToolIds = new Set()
+          continue // skip this message entirely
+        }
+        prevAssistantToolIds = new Set()
+      }
+      repaired.push(msg)
+    }
+  }
+
+  return repaired
+}
+
 // Retry backoff sequence in ms: 10s → 1min → 10min → 1h → 4h → (cycle)
 const BACKOFF_MS = [10_000, 60_000, 600_000, 3_600_000, 14_400_000]
 
@@ -39,8 +83,31 @@ export const runAgent = async (params: InvocationParams): Promise<void> => {
 
   if (existing) {
     console.log(`[${agent}] Resuming session from ${existing.updatedAt}`)
-    messages = existing.messages
+    messages = repairMessages(existing.messages, agent)
     backoffIndex = existing.backoffIndex
+
+    // If the session was saved right after an assistant tool_use response but
+    // before tool_results were processed (process crash mid-iteration), inject
+    // synthetic error results so the conversation stays valid.
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg?.role === 'assistant' && Array.isArray(lastMsg.content)) {
+      const unresolvedToolUses = lastMsg.content.filter(
+        (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+      )
+      if (unresolvedToolUses.length > 0) {
+        console.warn(`[${agent}] Session ended mid tool_use — injecting synthetic error results`)
+        messages.push({
+          role: 'user',
+          content: unresolvedToolUses.map(block => ({
+            type: 'tool_result' as const,
+            tool_use_id: block.id,
+            content: 'Error: session was interrupted before this tool result was received. Please retry.',
+            is_error: true,
+          })),
+        })
+      }
+    }
+
     if (params.humanComment) {
       messages.push({ role: 'user', content: `[Human comment on issue]: ${params.humanComment}` })
       console.log(`[${agent}] Injecting human comment into session`)

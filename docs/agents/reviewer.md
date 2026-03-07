@@ -14,7 +14,7 @@ You review structure, patterns, and interfaces. The Tester reviews behavior.
 When invoked, you will be given:
 - The PR diff (all changed files)
 - The Task issue the PR references
-- The current `/docs/architecture.md`
+- The architecture index (`/docs/architecture.md`) — use `read_file` to load the relevant sub-document for your task's domain
 - The `/tasks/{issue-id}.json` file
 
 ---

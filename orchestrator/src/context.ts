@@ -98,7 +98,8 @@ const buildArchitectArchitecturalTask = async (taskNumber: number): Promise<stri
   return `You are being invoked to execute Architectural Task #${taskNumber}.
 
 This is an architectural task YOU created. Your job is to make the decision described, update
-the relevant documentation, and close the task. No PR is required.
+the relevant documentation, and open a PR. Do NOT close the issue directly — the PR merge will
+close it. Branch naming: arch/${taskNumber}-short-description.
 
 ## Task #${taskNumber}
 ${task}
@@ -213,7 +214,6 @@ ${taskState}`
 }
 
 const buildTesterPostDev = async (taskNumber: number, prNumber: number): Promise<string> => {
-  const architecture = safeReadFile('docs/architecture.md')
   const taskState = safeReadFile(`tasks/${taskNumber}.json`)
   const [task, prRaw, diff] = await Promise.all([getIssue(taskNumber), getPr(prNumber), getPrDiff(prNumber)])
   const pr = JSON.parse(prRaw) as { head_branch: string }
@@ -232,8 +232,8 @@ ${diff}
 ## Task State
 ${taskState}
 
-## Test Conventions (from architecture.md)
-${architecture}`
+## Test Conventions
+${safeReadFile('docs/arch/testing.md')}`
 }
 
 const buildReviewer = async (prNumber: number, taskNumber: number): Promise<string> => {

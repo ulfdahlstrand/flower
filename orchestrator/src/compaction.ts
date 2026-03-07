@@ -20,10 +20,15 @@ export const compactMessages = async (
   messages: Anthropic.MessageParam[],
 ): Promise<Anthropic.MessageParam[]> => {
   // cutIdx is the first message of the "recent" block.
-  // It must be an odd index so that messages[cutIdx] is an assistant message,
-  // keeping the conversation valid after [augmentedInitial (user), ...recent].
+  // It must point to an assistant message so the conversation stays valid:
+  // [augmentedInitial (user), assistant, user, ...].
+  // We scan backward from the target cut point rather than relying on index
+  // parity, which breaks when a humanComment user-message is injected (two
+  // consecutive user messages shift all subsequent parities).
   let cutIdx = messages.length - KEEP_RECENT
-  if (cutIdx % 2 === 0) cutIdx--
+  while (cutIdx > 1 && messages[cutIdx]?.role !== 'assistant') {
+    cutIdx--
+  }
   if (cutIdx <= 1) return messages // nothing meaningful to compact
 
   const toArchive = messages.slice(1, cutIdx) // skip messages[0] (initial context)

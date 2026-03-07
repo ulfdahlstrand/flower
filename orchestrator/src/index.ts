@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
 import { PORT, WEBHOOK_SECRET } from './config.js'
 import { routeIssueLabeled, routePrLabeled, routeIssueComment, routePrComment, routeIssueClosed, routePrMerged, routePrSynchronize, runStartupCascadeCheck } from './router.js'
-import { runAgent } from './loop.js'
+import { enqueueAgent, recoverQueue } from './queue.js'
 import { clearSession } from './session.js'
 import type { InvocationParams } from './types.js'
 
@@ -107,13 +107,12 @@ app.post('/trigger', (req: Request, res: Response) => {
   }
   clearSession(params)
   res.status(202).json({ message: `Dispatching ${params.agent} (fresh)`, params })
-  runAgent(params).catch(err => {
-    console.error(`[trigger] Unhandled error for agent "${params.agent}":`, err)
-  })
+  enqueueAgent(params)
 })
 
 app.listen(PORT, () => {
   console.log(`Flower orchestrator listening on port ${PORT}`)
+  recoverQueue()
   runStartupCascadeCheck().catch(err =>
     console.error('[startup] Cascade check failed:', err),
   )

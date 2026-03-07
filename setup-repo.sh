@@ -150,20 +150,152 @@ cat > docs/architecture.md << 'DOC'
 ## Overview
 <!-- High-level description of the system -->
 
-## Tech Stack
-<!-- Languages, frameworks, key libraries -->
+## Sub-documents
 
-## Structure
-<!-- Folder/module breakdown and responsibilities -->
+Each domain has a focused sub-document. Agents should load only the sub-doc(s) relevant to their task.
 
-## Key Patterns
-<!-- Coding patterns all agents and developers must follow -->
+| File | Contents |
+|------|----------|
+| [arch/frontend.md](arch/frontend.md) | UI framework, component structure, styling conventions |
+| [arch/backend.md](arch/backend.md) | Server framework, API design, auth, service patterns |
+| [arch/data-model.md](arch/data-model.md) | Database, schema, ORM, migration strategy |
+| [arch/testing.md](arch/testing.md) | Test framework, file conventions, coverage expectations |
+| [arch/infrastructure.md](arch/infrastructure.md) | Hosting, CI/CD, environment config, deployment |
 
-## External Integrations
-<!-- APIs, services, databases -->
+## Cross-cutting Conventions
+
+These apply everywhere regardless of domain.
+
+**Commit format:** `type(scope): short description` — types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`
+
+**Branch naming:**
+- Feature work: `task/{issue-id}-short-description`
+- Architectural decisions: `arch/{issue-id}-short-description`
+
+**Monorepo layout:**
+<!-- Describe top-level folder responsibilities here -->
 
 ## Decision Log
 See [tech-decisions.md](./tech-decisions.md)
+DOC
+
+mkdir -p docs/arch
+
+cat > docs/arch/frontend.md << 'DOC'
+# Frontend Architecture
+
+> Maintained by the Architect Agent.
+
+## Framework & Libraries
+<!-- UI framework (e.g. React, Vue, Svelte), key libraries, and why they were chosen -->
+
+## Component Structure
+<!-- How components are organized — atomic design, feature folders, etc. -->
+
+## Routing
+<!-- Client-side routing approach and conventions -->
+
+## Styling Conventions
+<!-- CSS approach: Tailwind, CSS Modules, styled-components, etc. Design tokens/theme. -->
+
+## State Management
+<!-- How application state is managed — local state, context, stores, etc. -->
+
+## Build & Bundling
+<!-- Bundler (Vite, webpack, etc.), environment variables, asset handling -->
+DOC
+
+cat > docs/arch/backend.md << 'DOC'
+# Backend Architecture
+
+> Maintained by the Architect Agent.
+
+## Framework & Runtime
+<!-- Server framework (e.g. Express, Fastify, Hono), Node version, language -->
+
+## API Design
+<!-- REST, GraphQL, tRPC — URL conventions, versioning, response envelope format -->
+
+## Authentication & Authorization
+<!-- Auth strategy (JWT, session, OAuth), middleware, RBAC if applicable -->
+
+## Service & Module Structure
+<!-- How business logic is organized — services, repositories, handlers, etc. -->
+
+## Error Handling
+<!-- Standard error format, HTTP status code conventions, logging approach -->
+
+## External Integrations
+<!-- Third-party APIs, webhooks, background jobs -->
+DOC
+
+cat > docs/arch/data-model.md << 'DOC'
+# Data Model
+
+> Maintained by the Architect Agent.
+
+## Database
+<!-- Database system (PostgreSQL, MySQL, SQLite, MongoDB, etc.) and why -->
+
+## ORM / Query Layer
+<!-- ORM or query builder (Prisma, Drizzle, Knex, raw SQL, etc.) -->
+
+## Schema Overview
+<!-- High-level entity list and key relationships — link to migration files for detail -->
+
+## Migration Strategy
+<!-- How schema changes are managed: file naming, workflow, rollback policy -->
+
+## Seeding & Test Data
+<!-- How development and test databases are seeded -->
+DOC
+
+cat > docs/arch/testing.md << 'DOC'
+# Testing Conventions
+
+> Maintained by the Architect Agent. The Tester Agent reads this file for all testing decisions.
+
+## Test Framework
+<!-- Testing library (Jest, Vitest, pytest, etc.) and test runner -->
+
+## File Conventions
+<!-- Where test files live, naming pattern (e.g. *.test.ts next to source, or tests/ folder) -->
+
+## Test Types
+<!-- Unit, integration, e2e — what each covers and what tooling is used -->
+
+## Running Tests
+<!-- Commands to run tests locally and in CI -->
+
+## Coverage Expectations
+<!-- Minimum coverage thresholds, what is excluded -->
+
+## Mocking & Fixtures
+<!-- How external dependencies and data are mocked in tests -->
+DOC
+
+cat > docs/arch/infrastructure.md << 'DOC'
+# Infrastructure
+
+> Maintained by the Architect Agent.
+
+## Hosting
+<!-- Where the app runs: cloud provider, region, services used -->
+
+## CI/CD
+<!-- Pipeline tool (GitHub Actions, etc.), workflow overview, required checks before merge -->
+
+## Environments
+<!-- Environment list (dev, staging, production), how config differs between them -->
+
+## Environment Variables
+<!-- How secrets and config are managed — .env conventions, secret manager, etc. -->
+
+## Deployment Process
+<!-- How a merge to main becomes a production deployment -->
+
+## Monitoring & Alerting
+<!-- Logging, error tracking, uptime monitoring -->
 DOC
 
 cat > docs/tech-decisions.md << 'DOC'

@@ -11,7 +11,7 @@ You operate in the **execution tier**.
 When invoked, you will be given:
 - The Feature issue body and comments
 - The parent Epic issue body
-- The current `/docs/architecture.md`
+- The architecture index (`/docs/architecture.md`) — use `read_file` to load the relevant sub-document for your task's domain
 - Any existing `/tasks/{issue-id}.json` for this feature (if re-invoked after a blocker)
 
 ---

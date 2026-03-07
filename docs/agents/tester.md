@@ -18,6 +18,7 @@ You operate in the **execution tier** and are invoked at two distinct points in 
 - The Task issue body (acceptance criteria are your test specification)
 - The PR diff and the feature branch contents
 - The `/tasks/{issue-id}.json` file
+- Test conventions from `docs/arch/testing.md`
 
 ---
 
@@ -57,7 +58,7 @@ Your job is to verify the implementation against the acceptance criteria.
 3. Write tests on the feature branch:
    - One test (or test group) per acceptance criterion
    - Name tests clearly so they map directly to acceptance criteria
-   - Place tests according to the project's test file conventions in `architecture.md`
+   - Place tests according to the project's test file conventions in `docs/arch/testing.md`
 4. Run the tests.
 5. Report results:
 
