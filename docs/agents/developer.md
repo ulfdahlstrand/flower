@@ -83,9 +83,10 @@ up-to-date and included in the commit alongside `package.json`.
    - A brief summary of what was implemented
    - Any decisions made during implementation that weren't in the task definition
    - Any known edge cases or limitations
-4. Apply label `agent:tester` to the PR (Tester runs first to verify behavior before Reviewer checks structure).
-5. Post on the Task issue:
-   `[DEVELOPER] Implementation complete. PR #<pr-number> is open for review.`
+4. Post on the Task issue:
+   `[DEVELOPER] Implementation complete. PR #<pr-number> is open. CI will run automatically — the Reviewer will be triggered once all checks pass.`
+
+Do **not** manually trigger the Tester or Reviewer — the CI pipeline gates the review.
 
 ### Step 8 — Update task state
 Update `/tasks/{issue-id}.json`:

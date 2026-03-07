@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
 import { PORT, WEBHOOK_SECRET } from './config.js'
-import { routeIssueLabeled, routePrLabeled, routeIssueComment, routePrComment, routeIssueClosed, routePrMerged, routePrSynchronize, runStartupCascadeCheck } from './router.js'
+import { routeIssueLabeled, routePrLabeled, routeIssueComment, routePrComment, routeIssueClosed, routePrMerged, routeCheckSuiteCompleted, runStartupCascadeCheck } from './router.js'
 import { enqueueAgent, recoverQueue } from './queue.js'
 import { clearSession } from './session.js'
 import type { InvocationParams } from './types.js'
@@ -62,9 +62,12 @@ const handleEvent = async (event: string, payload: Record<string, unknown>): Pro
     return
   }
 
-  if (event === 'pull_request' && payload.action === 'synchronize') {
-    const pr = payload.pull_request as { number: number; labels: Array<{ name?: string }>; body?: string }
-    await routePrSynchronize(pr)
+  if (event === 'check_suite' && payload.action === 'completed') {
+    const suite = payload.check_suite as { conclusion: string; pull_requests: Array<{ number: number }> }
+    const prNumbers = suite.pull_requests.map((pr: { number: number }) => pr.number)
+    if (prNumbers.length > 0) {
+      await routeCheckSuiteCompleted(suite.conclusion, prNumbers)
+    }
     return
   }
 

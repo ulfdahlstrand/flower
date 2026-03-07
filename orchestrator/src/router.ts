@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { anthropic } from './config.js'
 import { enqueueAgent, isAgentPendingForPr } from './queue.js'
-import { addLabel, removeLabel, closeIssue, fetchAllIssues, listChildIssues, postComment } from './tools/github.js'
+import { addLabel, removeLabel, closeIssue, fetchAllIssues, listChildIssues, postComment, getPrMeta } from './tools/github.js'
 import { readFile, writeFile } from './tools/files.js'
 import { loadSession, clearSession } from './session.js'
 import { REPO_PATH } from './config.js'
@@ -196,21 +196,30 @@ export const routePrComment = async (pr: PullRequest & { body?: string }, commen
   }
 }
 
-export const routePrSynchronize = async (pr: PullRequest): Promise<void> => {
-  const labels = labelNames(pr.labels)
-  if (!labels.includes('agent:tester')) {
-    console.log(`[router] PR #${pr.number} pushed — no agent:tester label, skipping`)
+// Called when a GitHub check suite completes on a PR.
+// If all checks passed, trigger the reviewer — CI is the gate, not the Tester agent.
+export const routeCheckSuiteCompleted = async (conclusion: string, prNumbers: number[]): Promise<void> => {
+  if (conclusion !== 'success') {
+    console.log(`[router] Check suite concluded ${conclusion} — not triggering reviewer`)
     return
   }
-  if (isAgentPendingForPr('tester', pr.number)) {
-    console.log(`[router] PR #${pr.number} pushed — tester already running/queued, skipping (agent self-commit)`)
-    return
+  for (const prNumber of prNumbers) {
+    const pr = await getPrMeta(prNumber)
+    if (pr.state !== 'open') {
+      console.log(`[router] PR #${prNumber} is not open — skipping`)
+      continue
+    }
+    if (isAgentPendingForPr('reviewer', prNumber)) {
+      console.log(`[router] PR #${prNumber} reviewer already queued — skipping`)
+      continue
+    }
+    const taskNumber = extractIssueRef(pr.body ?? undefined)
+    console.log(`[router] CI passed for PR #${prNumber} — triggering reviewer`)
+    const agentLabels = pr.labels.filter(l => l.startsWith('agent:'))
+    await Promise.all(agentLabels.map(l => removeLabel(prNumber, l)))
+    await addLabel(prNumber, 'agent:reviewer')
+    enqueueAgent({ agent: 'reviewer', prNumber, issueNumber: taskNumber })
   }
-  const taskNumber = extractIssueRef(pr.body)
-  const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
-  console.log(`[router] PR #${pr.number} new commit — clearing tester session and re-running`)
-  clearSession(params)
-  enqueueAgent(params)
 }
 
 export const routePrLabeled = async (pr: PullRequest, addedLabel: string): Promise<void> => {

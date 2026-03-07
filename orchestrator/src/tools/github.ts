@@ -120,6 +120,16 @@ export const listIssues = async (
   })))
 }
 
+export const getPrMeta = async (prNumber: number): Promise<{ number: number; state: string; body: string | null; labels: string[] }> => {
+  const { data } = await octokit.pulls.get({ owner: OWNER, repo: REPO, pull_number: prNumber })
+  return {
+    number: data.number,
+    state: data.state,
+    body: data.body ?? null,
+    labels: data.labels.map(l => l.name ?? '').filter(Boolean),
+  }
+}
+
 export const getPr = async (prNumber: number): Promise<string> => {
   const { data } = await octokit.pulls.get({ owner: OWNER, repo: REPO, pull_number: prNumber })
   return JSON.stringify({

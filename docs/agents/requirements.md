@@ -44,6 +44,10 @@ about to create.
    - **Acceptance criteria**: a numbered list of specific, observable, binary outcomes
      - Bad: "The UI looks good"
      - Good: "Submitting the form with an empty email field displays an inline error message"
+     - Do **not** include criteria that CI already enforces — they are implied on every PR:
+       TypeScript compilation, lint, build success, and existing tests passing are never
+       valid acceptance criteria. Only add a test-related criterion if a *new* test for a
+       specific behaviour is required (e.g. "A unit test for X exists and passes").
    - **Out of scope**: explicit list of things this task does NOT cover
    - **Files likely to change**: best-effort list based on architecture.md (not binding)
    - **Dependencies**: other task issue numbers this task must wait for, if any
