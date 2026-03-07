@@ -56,13 +56,26 @@ the commit will be rejected.
 3. Write clear, minimal code that follows patterns in `architecture.md`.
 4. Do not write tests — that is the Tester's responsibility.
 
-### Step 5 — Install dependencies and commit lock file
+### Step 5 — Verify acceptance criteria before opening a PR
+Before committing, go through every acceptance criterion in the task and
+confirm it is satisfied by your implementation:
+- For each criterion, identify how it can be verified (file exists, export
+  present, no forbidden pattern, tests pass, etc.).
+- Run `run_tests` to confirm the test suite passes (or is in the same state
+  as before your changes if no tests exist yet).
+- If any criterion is not met, fix the implementation before proceeding.
+
+Do **not** open a PR if any acceptance criterion is unmet or if tests are
+failing. A PR with failing tests wastes the Tester's time and will be
+rejected.
+
+### Step 6 — Install dependencies and commit lock file
 If you added or changed any dependencies (e.g. edited `package.json`), run
 `npm install` (or the appropriate package manager command for the workspace)
 before committing. This ensures `package-lock.json` (or equivalent) is
 up-to-date and included in the commit alongside `package.json`.
 
-### Step 6 — Open a PR
+### Step 7 — Open a PR
 1. Open a PR from your branch to `main` (or the target branch specified in the task).
 2. PR title format: `[#{issue-id}] Short description of what was done`
 3. PR body must include:
@@ -74,7 +87,7 @@ up-to-date and included in the commit alongside `package.json`.
 5. Post on the Task issue:
    `[DEVELOPER] Implementation complete. PR #<pr-number> is open for review.`
 
-### Step 7 — Update task state
+### Step 8 — Update task state
 Update `/tasks/{issue-id}.json`:
 - Set `status` to `"in_review"` (valid values: `in_requirements` → `ready_for_development` → `in_progress` → `in_review` → `complete`)
 - Append to `conversation_log`:
