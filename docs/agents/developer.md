@@ -31,6 +31,8 @@ When invoked, you will be given:
    - Folder/module structure
    - Naming conventions
    - Any patterns explicitly prohibited
+4. Check `/docs/playbook/README.md` for a matching recipe. If one exists, read it
+   before writing any code — it contains reasoning and gotchas from previous similar tasks.
 
 ### Step 2 — Identify blockers before writing code
 Before creating a branch or writing any code, check:
@@ -88,7 +90,20 @@ up-to-date and included in the commit alongside `package.json`.
 
 Do **not** manually trigger the Tester or Reviewer — the CI pipeline gates the review.
 
-### Step 8 — Update task state
+### Step 8 — Update the playbook
+If this task involved a non-trivial, reusable implementation pattern that is
+likely to recur (e.g. adding a new backend route with DB access, setting up a
+new background job, adding a new i18n locale), document it:
+
+1. Check if a matching entry already exists in `docs/playbook/`.
+   - **Exists** → update it with anything new you learned (gotchas, better steps).
+   - **Does not exist** → create `docs/playbook/<short-slug>.md` following the
+     template in `docs/playbook/README.md`, and add a row to the index table.
+2. Include the playbook file in your commit alongside the implementation.
+
+Skip this step if the task was straightforward with no reusable insight.
+
+### Step 9 — Update task state
 Update `/tasks/{issue-id}.json`:
 - Set `status` to `"in_review"` (valid values: `in_requirements` → `ready_for_development` → `in_progress` → `in_review` → `complete`)
 - Append to `conversation_log`:
