@@ -1,11 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type Anthropic from '@anthropic-ai/sdk'
+import { REPO_PATH } from './config.js'
 import type { InvocationParams } from './types.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const SESSIONS_DIR = path.resolve(__dirname, '../../sessions')
+const SESSIONS_DIR = path.join(REPO_PATH, '.flower', 'sessions')
 
 interface Session {
   params: InvocationParams

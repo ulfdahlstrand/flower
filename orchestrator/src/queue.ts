@@ -1,12 +1,11 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { runAgent } from './loop.js'
+import { REPO_PATH } from './config.js'
 import type { InvocationParams } from './types.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const QUEUE_DIR = path.resolve(__dirname, '../../queue')
+const QUEUE_DIR = path.join(REPO_PATH, '.flower', 'queue')
 const QUEUE_FILE = path.join(QUEUE_DIR, 'pending.json')
 const LOCK_FILE = path.join(QUEUE_DIR, 'worker.lock')
 

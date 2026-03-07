@@ -492,6 +492,13 @@ cat > product/brief.md << 'DOC'
 <!-- Things that need to be resolved before or during development -->
 DOC
 
+# .gitignore — exclude flower runtime data from version control
+cat >> .gitignore << 'EOF'
+
+# Flower orchestrator runtime data (sessions, queue)
+.flower/
+EOF
+
 # Commit and push
 git add .
 git commit -m "chore: initialize agent development flow structure"
