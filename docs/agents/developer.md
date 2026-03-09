@@ -90,18 +90,27 @@ up-to-date and included in the commit alongside `package.json`.
 
 Do **not** manually trigger the Tester or Reviewer — the CI pipeline gates the review.
 
-### Step 8 — Update the playbook
-If this task involved a non-trivial, reusable implementation pattern that is
-likely to recur (e.g. adding a new backend route with DB access, setting up a
-new background job, adding a new i18n locale), document it:
+### Step 8 — Update the playbook (only when clearly warranted)
+Only add or update a playbook entry if **both** of the following are true:
 
-1. Check if a matching entry already exists in `docs/playbook/`.
-   - **Exists** → update it with anything new you learned (gotchas, better steps).
-   - **Does not exist** → create `docs/playbook/<short-slug>.md` following the
-     template in `docs/playbook/README.md`, and add a row to the index table.
-2. Include the playbook file in your commit alongside the implementation.
+1. **The pattern repeats by design** — it is structurally baked into the
+   project (e.g. every new API route, every new DB migration, every new i18n
+   locale follows the same steps). A pattern that *happened once* is not enough.
+2. **The recipe provides non-obvious value** — it captures gotchas, ordering
+   constraints, or decisions that are not self-evident from reading the code or
+   architecture docs.
 
-Skip this step if the task was straightforward with no reusable insight.
+If a matching entry already exists in `docs/playbook/`, update it only if you
+learned something new (a better step, a gotcha, a discovered edge case).
+
+**Do not create a playbook entry** for:
+- One-off tasks with no structural equivalent
+- Patterns obvious from the architecture docs or the codebase itself
+- Variations on existing tasks that don't add new insight
+
+When warranted, create `docs/playbook/<short-slug>.md` following the template
+in `docs/playbook/README.md` and add a row to the index table. Include the
+playbook file in your PR commit.
 
 ### Step 9 — Update task state
 Update `/tasks/{issue-id}.json`:

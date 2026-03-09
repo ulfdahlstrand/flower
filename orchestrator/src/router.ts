@@ -142,6 +142,39 @@ export const routeIssueClosed = async (issueNumber: number, body?: string): Prom
 
 export const routeIssueComment = async (issue: Issue, commentBody: string): Promise<void> => {
   const labels = labelNames(issue.labels)
+
+  // @agent:X mention — the primary handoff and routing mechanism.
+  // The orchestrator manages label changes so agents don't have to.
+  const mentionMatch = commentBody.match(/@agent:([\w-]+)/)
+  if (mentionMatch) {
+    // Special case: @agent:developer + "playbook" → generate playbook entry.
+    // Task number can be the current issue or an explicit #N in the comment.
+    if (mentionMatch[1] === 'developer' && /playbook/i.test(commentBody)) {
+      const explicitRef = commentBody.match(/#(\d+)/)
+      const taskNumber = explicitRef ? parseInt(explicitRef[1], 10) : issue.number
+      console.log(`[router] Playbook generation requested for task #${taskNumber}`)
+      enqueueAgent({ agent: 'developer', issueNumber: taskNumber, developerMode: 'playbook' })
+      return
+    }
+
+    const mentionedLabel = `agent:${mentionMatch[1]}`
+    // Build the label set as it will look after the swap so resolveIssueParams
+    // can determine the correct invocation mode.
+    const swappedLabels = [...labels.filter(l => !l.startsWith('agent:')), mentionedLabel]
+    const params = resolveIssueParams(issue.number, swappedLabels, mentionedLabel)
+    if (params) {
+      console.log(`[router] @${mentionedLabel} mentioned on #${issue.number} — routing`)
+      const existingAgentLabels = labels.filter(l => l.startsWith('agent:'))
+      await Promise.all(existingAgentLabels.map(l => removeLabel(issue.number, l)))
+      await addLabel(issue.number, mentionedLabel)
+      enqueueAgent(params)
+      return
+    }
+    console.log(`[router] @${mentionedLabel} mentioned on #${issue.number} — no route found, ignoring`)
+    return
+  }
+
+  // No @mention — resume a paused session if one exists.
   const agentLabel = labels.find(l => l.startsWith('agent:'))
   if (!agentLabel) {
     console.log(`[router] No active agent label on issue #${issue.number} — ignoring comment`)
@@ -163,9 +196,29 @@ export const routeIssueComment = async (issue: Issue, commentBody: string): Prom
 
 export const routePrComment = async (pr: PullRequest & { body?: string }, commentBody: string): Promise<void> => {
   const labels = labelNames(pr.labels)
+  const taskNumber = extractIssueRef(pr.body)
 
+  // @agent:X mention on a PR — the primary handoff mechanism.
+  const mentionMatch = commentBody.match(/@agent:([\w-]+)/)
+  if (mentionMatch) {
+    const mentionedLabel = `agent:${mentionMatch[1]}`
+    const params = resolvePrParams(pr, mentionedLabel)
+    if (params) {
+      console.log(`[router] @${mentionedLabel} mentioned on PR #${pr.number} — routing`)
+      const existingAgentLabels = labels.filter(l => l.startsWith('agent:'))
+      await Promise.all(existingAgentLabels.map(l => removeLabel(pr.number, l)))
+      await addLabel(pr.number, mentionedLabel)
+      clearSession(params)
+      enqueueAgent(params)
+      return
+    }
+    console.log(`[router] @${mentionedLabel} mentioned on PR #${pr.number} — no route found, ignoring`)
+    return
+  }
+
+  // Fallback: legacy retest-request detection for PRs without explicit @mention.
   if (!labels.includes('agent:developer') && !labels.includes('agent:tester')) {
-    console.log(`[router] PR #${pr.number} comment — no agent:developer or agent:tester label, ignoring`)
+    console.log(`[router] PR #${pr.number} comment — no agent label and no @mention, ignoring`)
     return
   }
 
@@ -175,25 +228,12 @@ export const routePrComment = async (pr: PullRequest & { body?: string }, commen
     return
   }
 
-  const taskNumber = extractIssueRef(pr.body)
-
-  if (labels.includes('agent:developer')) {
-    console.log(`[router] PR #${pr.number} comment — swapping agent:developer → agent:tester and re-running`)
-    await removeLabel(pr.number, 'agent:developer')
-    await addLabel(pr.number, 'agent:tester')
-    const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
-    clearSession(params)
-    enqueueAgent(params)
-    return
-  }
-
-  if (labels.includes('agent:tester')) {
-    console.log(`[router] PR #${pr.number} comment — re-running tester`)
-    const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
-    clearSession(params)
-    enqueueAgent(params)
-    return
-  }
+  console.log(`[router] PR #${pr.number} comment — retest requested, re-running tester`)
+  await removeLabel(pr.number, 'agent:developer').catch(() => {})
+  await addLabel(pr.number, 'agent:tester')
+  const params: InvocationParams = { agent: 'tester', prNumber: pr.number, issueNumber: taskNumber, testerMode: 'post_dev' }
+  clearSession(params)
+  enqueueAgent(params)
 }
 
 // Called when a GitHub check suite completes on a PR.

@@ -10,6 +10,7 @@ export type ArchitectMode = 'epic_breakdown' | 'task_review' | 'architectural_ta
 export type TesterMode = 'pre_dev' | 'post_dev'
 export type PmMode = 'init' | 'monitor'
 export type RequirementsMode = 'feature' | 'task_revision'
+export type DeveloperMode = 'playbook'
 
 export interface InvocationParams {
   agent: AgentName
@@ -19,6 +20,7 @@ export interface InvocationParams {
   testerMode?: TesterMode
   pmMode?: PmMode
   requirementsMode?: RequirementsMode
+  developerMode?: DeveloperMode
   humanComment?: string
 }
 

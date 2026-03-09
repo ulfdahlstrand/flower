@@ -1,5 +1,8 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { readFile } from './tools/files.js'
 import { getIssue, listIssues, getPr, getPrDiff } from './tools/github.js'
+import { REPO_PATH } from './config.js'
 import type { InvocationParams } from './types.js'
 
 export const buildContext = async (params: InvocationParams): Promise<string> => {
@@ -21,6 +24,7 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
       return buildRequirements(issueNumber!)
 
     case 'developer':
+      if (params.developerMode === 'playbook') return buildDeveloperPlaybook(issueNumber!)
       return buildDeveloper(issueNumber!)
 
     case 'tester':
@@ -179,6 +183,83 @@ ${taskState}
 
 ## Current Architecture
 ${architecture}`
+}
+
+const buildDeveloperPlaybook = async (taskNumber: number): Promise<string> => {
+  const taskRaw = await getIssue(taskNumber)
+  const task = JSON.parse(taskRaw)
+  const taskState = safeReadFile(`tasks/${taskNumber}.json`)
+  const playbookIndex = safeReadFile('docs/playbook/README.md')
+
+  // Find the PR number from the task's comments (developer posts PR link there)
+  const prRef = (task.comments as Array<{ body?: string }>)
+    ?.flatMap(c => [...(c.body?.matchAll(/PR #(\d+)/g) ?? [])])
+    .map(m => parseInt(m[1], 10))
+    .filter(n => !isNaN(n))
+    .at(-1)
+
+  let prDiff = '(no PR found)'
+  let prBody = '(no PR found)'
+  if (prRef) {
+    try {
+      const pr = JSON.parse(await getPr(prRef))
+      prBody = pr.body ?? ''
+      prDiff = await getPrDiff(prRef)
+    } catch { /* PR may be closed/merged, diff might be large */ }
+  }
+
+  // List session archives so the agent can read the reasoning
+  const sessionsDir = path.join(REPO_PATH, '.flower', 'sessions')
+  let archiveList = '(no archives found)'
+  try {
+    const files = fs.readdirSync(sessionsDir)
+      .filter(f => f.startsWith(`developer-${taskNumber}-`) && f.includes('archive'))
+      .sort()
+    if (files.length > 0) {
+      archiveList = files.map(f => `.flower/sessions/${f}`).join('\n')
+    }
+  } catch { /* sessions dir may not exist */ }
+
+  return `You are being invoked to write a playbook entry for Task #${taskNumber}.
+
+Your goal is to produce a concise, reusable implementation recipe in \`docs/playbook/\`
+that a future developer agent can read before tackling a similar task.
+
+## Task #${taskNumber}
+${JSON.stringify(task, null, 2)}
+
+## Task State
+${taskState}
+
+${prRef ? `## PR #${prRef} body\n${prBody}` : ''}
+
+## PR Diff (implementation)
+${prDiff.slice(0, 40_000)}
+
+## Session Archives (full reasoning — read these with read_file)
+${archiveList}
+
+## Current Playbook Index
+${playbookIndex}
+
+## Instructions
+1. Read the session archives (use read_file) to understand the full reasoning and decisions.
+2. Ask yourself honestly: **does this task represent a pattern that repeats by design?**
+   - "By design" means the project structure will require future developers to do the same
+     type of task again (e.g. every new API route, every new DB table, every new i18n locale).
+   - A task that happened once, or was highly specific to one feature, does not qualify.
+   - A pattern obvious from reading the architecture docs does not qualify.
+3. **If no clear recurring-by-design pattern exists**: post on the task issue:
+   \`[DEVELOPER] Reviewed session for playbook. No recurring pattern identified — skipping.\`
+   Then stop. Do NOT create a playbook entry just to have something to show.
+4. **If a pattern clearly does recur by design**:
+   a. Check if a matching entry already exists in docs/playbook/.
+      - If yes: update it only if you learned something new (gotcha, better ordering, edge case).
+      - If no: create docs/playbook/<short-slug>.md using the template in docs/playbook/README.md
+        and add a row to the index table.
+   b. Commit the playbook file(s) directly to main (no PR needed — playbook is documentation).
+   c. Post on the task issue:
+      \`[DEVELOPER] Playbook entry written: docs/playbook/<filename>.md\``
 }
 
 const buildRequirementsTaskRevision = async (taskNumber: number): Promise<string> => {
