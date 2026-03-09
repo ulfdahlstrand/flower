@@ -100,7 +100,19 @@ const processQueue = async (): Promise<void> => {
   } finally {
     releaseLock()
     processing = false
-    setImmediate(processQueue)
+    const queueAfter = readQueue()
+    const queueDrained = queueAfter.length === 0
+    // Wake PM when the pipeline drains so it can distribute new work.
+    // Only trigger for non-PM agents (to avoid loops) or when PM setup just finished.
+    const shouldWakePm =
+      (params.agent !== 'pm' && queueDrained) ||
+      (params.agent === 'pm' && params.pmMode === 'setup')
+    if (shouldWakePm) {
+      console.log(`[queue] Queue drained after ${params.agent} — scheduling PM to check for new work`)
+      enqueueAgent({ agent: 'pm' })
+    } else {
+      setImmediate(processQueue)
+    }
   }
 }
 

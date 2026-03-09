@@ -11,6 +11,7 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
   switch (agent) {
     case 'pm':
       if (pmMode === 'setup') return buildPmSetup()
+      if (pmMode === 'task_closed') return buildPmTaskClosed(params.closedIssueNumber!)
       return pmMode === 'init' ? buildPmInit() : buildPmMonitor()
 
     case 'po':
@@ -72,31 +73,87 @@ No milestones or issues exist yet.`
 }
 
 
+const readQueueDepth = (): number => {
+  try {
+    const queueFile = path.join(REPO_PATH, '.flower', 'queue', 'pending.json')
+    const items = JSON.parse(fs.readFileSync(queueFile, 'utf-8')) as unknown[]
+    return items.length
+  } catch {
+    return 0
+  }
+}
+
 const buildPmMonitor = async (): Promise<string> => {
+  const brief = safeReadFile('product/brief.md')
   const [all, blocked] = await Promise.all([
     listIssues([], undefined, 'open'),
     listIssues(['status:blocked'], undefined, 'open'),
   ])
 
   const allIssues = JSON.parse(all) as Array<{ labels: (string | null)[] }>
-  const activeAgentIssues = allIssues.filter(i =>
+  const issuesWithAgentLabel = allIssues.filter(i =>
     i.labels.some(l => l?.startsWith('agent:') && l !== 'agent:pm'),
   )
+  const queueDepth = readQueueDepth()
 
-  return `You are being invoked to monitor project progress and resolve blockers.
+  // If the queue is empty, agent labels on open issues are stale (from a previous or
+  // interrupted session). Do not treat them as active pipeline capacity.
+  const activeCount = queueDepth > 0 ? issuesWithAgentLabel.length : 0
+
+  const isNewProject = allIssues.length === 0
+
+  return `You are being invoked to ${isNewProject ? 'initialize a new project' : 'monitor project progress and resolve blockers'}.
+
+## Product Brief
+${brief}
 
 ## Pipeline Capacity
-Active agent assignments (issues with agent:* labels currently being processed): ${activeAgentIssues.length}
+Queue depth (tasks currently waiting or running): ${queueDepth}
+Issues with active agent labels: ${issuesWithAgentLabel.length}
+Effective active count: ${activeCount}
+${queueDepth === 0 && issuesWithAgentLabel.length > 0
+  ? '⚠ Queue is empty — agent labels on open issues are stale from a previous session and should NOT count as active capacity. Treat effective active count as 0 and proceed with advancing work.'
+  : ''}
 Recommended maximum concurrent: 3
 
-If active assignments >= 3, do NOT advance new issues into the pipeline.
-Post: [PM] Pipeline at capacity (${activeAgentIssues.length} active). Monitoring only.
+If effective active count >= 3, do NOT advance new issues into the pipeline.
+Post: [PM] Pipeline at capacity (${activeCount} active). Monitoring only.
 
 ## Open Issues
 ${all}
 
 ## Blocked Issues
 ${blocked}`
+}
+
+const buildPmTaskClosed = async (closedIssueNumber: number): Promise<string> => {
+  const closed = await getIssue(closedIssueNumber)
+  const allOpenTasks = JSON.parse(
+    await listIssues(['type:task'], undefined, 'open'),
+  ) as Array<{ number: number; title: string; body: string | null; labels: string[] }>
+
+  // Candidates: open tasks whose body references the closed issue number
+  const candidates = allOpenTasks.filter(i => i.body?.includes(`#${closedIssueNumber}`))
+
+  const candidatesWithState = candidates.map(i => ({
+    number: i.number,
+    title: i.title,
+    labels: i.labels,
+    body: i.body,
+    taskState: safeReadFile(`tasks/${i.number}.json`),
+  }))
+
+  return `You are being invoked because issue #${closedIssueNumber} was just closed.
+
+## Closed Issue #${closedIssueNumber}
+${closed}
+
+## Open Tasks That May Have Been Waiting On This
+${candidatesWithState.length === 0
+  ? '(none found — no open tasks reference this issue number)'
+  : JSON.stringify(candidatesWithState, null, 2)}
+
+Follow the "On task closed" workflow in your instructions.`
 }
 
 const buildRequirementsEpicBreakdown = async (epicNumber: number): Promise<string> => {

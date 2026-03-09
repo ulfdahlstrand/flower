@@ -123,21 +123,24 @@ export const routePrMerged = async (prNumber: number, body?: string): Promise<vo
 
 export const routeIssueClosed = async (issueNumber: number, body?: string): Promise<void> => {
   const parentMatch = body?.match(/Part of #(\d+)/i)
-  if (!parentMatch) return
+  if (parentMatch) {
+    const parentNumber = parseInt(parentMatch[1], 10)
+    const siblingsRaw = await listChildIssues(parentNumber)
+    const siblings = JSON.parse(siblingsRaw) as Array<{ number: number; state: string }>
 
-  const parentNumber = parseInt(parentMatch[1], 10)
-  const siblingsRaw = await listChildIssues(parentNumber)
-  const siblings = JSON.parse(siblingsRaw) as Array<{ number: number; state: string }>
-
-  const openSiblings = siblings.filter(s => s.state === 'open' && s.number !== issueNumber)
-  if (openSiblings.length > 0) {
-    console.log(`[router] #${parentNumber} still has ${openSiblings.length} open child(ren) — not closing`)
-    return
+    const openSiblings = siblings.filter(s => s.state === 'open' && s.number !== issueNumber)
+    if (openSiblings.length > 0) {
+      console.log(`[router] #${parentNumber} still has ${openSiblings.length} open child(ren) — not closing`)
+    } else {
+      console.log(`[router] All children of #${parentNumber} closed — closing parent`)
+      await closeIssue(parentNumber)
+      await postComment(parentNumber, '[PM] All child issues are complete. Closing.')
+    }
   }
 
-  console.log(`[router] All children of #${parentNumber} closed — closing parent`)
-  await closeIssue(parentNumber)
-  await postComment(parentNumber, '[PM] All child issues are complete. Closing.')
+  // Notify PM to advance any tasks that were blocked waiting on this issue
+  console.log(`[router] #${issueNumber} closed — enqueueing PM to check for unblocked dependents`)
+  enqueueAgent({ agent: 'pm', pmMode: 'task_closed', closedIssueNumber: issueNumber })
 }
 
 export const routeIssueComment = async (issue: Issue, commentBody: string): Promise<void> => {
