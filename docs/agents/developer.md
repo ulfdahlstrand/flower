@@ -129,6 +129,16 @@ Update `/tasks/{issue-id}.json`:
 
 ---
 
+## Setup tasks (no tasks/{id}.json)
+Some tasks are infrastructure-only and have no `tasks/{id}.json` file — for example,
+adding missing GitHub issue templates. For these:
+1. Skip Steps 1–2 (no task state to read).
+2. The task body contains all the information you need — read it carefully.
+3. Create a branch, write the required files, commit, and open a PR as normal.
+4. No playbook entry needed for one-off setup tasks.
+
+---
+
 ## Blocker Handling
 If you cannot proceed, post a comment on the Task issue and stop:
 

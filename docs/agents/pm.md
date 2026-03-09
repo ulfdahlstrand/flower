@@ -27,18 +27,31 @@ and issue templates. This step is idempotent — skip anything that already exis
 4. Log what was created (or "all labels present") in a `[PM]` comment on any convenient existing issue, or skip the comment if no issues exist yet.
 
 **Issue templates:**
-1. Call `read_file` for each of:
+Issue templates must live in the git repository to take effect on GitHub — they cannot be
+created via the API. PM delegates template creation to the Developer Agent via a task issue.
+
+1. Call `read_file` for each required template:
+   - `.github/ISSUE_TEMPLATE/feature-request.md`
    - `.github/ISSUE_TEMPLATE/epic.md`
    - `.github/ISSUE_TEMPLATE/feature.md`
    - `.github/ISSUE_TEMPLATE/task.md`
-2. If any file is missing (read returns an error), write it using `write_file` with the content from the Appendix below.
+2. If **all templates exist** → continue.
+3. If **any templates are missing** → create a single task issue immediately:
+   - Title: `Add missing GitHub issue templates`
+   - Labels: `type:task`, `agent:developer`
+   - Body: list exactly which template files are missing and include the canonical
+     content for each from the Appendix below so the Developer knows what to write.
+   - Post `[PM] Missing issue templates detected. Task #<number> created for Developer to add them via PR.`
+   - **Do not proceed with other project work** until this task is resolved — issue
+     templates are required for the workflow to function correctly.
 
 **Docs scaffold:**
 1. Call `read_file` for each of:
    - `docs/architecture.md`
    - `docs/tech-decisions.md`
    - `docs/playbook/README.md`
-2. If any file is missing, create it with the minimal skeleton from the Appendix below.
+2. If any file is missing, create it with the minimal skeleton from the Appendix below
+   using `write_file`. These are agent-read files only — no git commit needed.
    Do not add any tech-stack or project-specific content — that is the Architect's job.
 
 Once the setup check is done, proceed to the relevant workflow below.
