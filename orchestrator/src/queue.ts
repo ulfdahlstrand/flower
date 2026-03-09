@@ -2,7 +2,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { runAgent } from './loop.js'
-import { REPO_PATH } from './config.js'
+import { REPO_PATH, MANUAL_AGENTS } from './config.js'
+import { postComment } from './tools/github.js'
 import type { InvocationParams } from './types.js'
 
 const QUEUE_DIR = path.join(REPO_PATH, '.flower', 'queue')
@@ -151,6 +152,18 @@ export const isAgentPendingForPr = (agent: string, prNumber: number): boolean =>
 }
 
 export const enqueueAgent = (params: InvocationParams): void => {
+  if (MANUAL_AGENTS.has(params.agent)) {
+    console.log(`[queue] ${params.agent} is configured as manual — skipping auto-invocation`)
+    if (params.issueNumber) {
+      postComment(
+        params.issueNumber,
+        `[ORCHESTRATOR] This step requires a human **${params.agent}**. When done, post \`@agent:<next-agent>\` to continue the pipeline.`,
+      ).catch(err => console.error('[queue] Failed to post manual notice:', err))
+    }
+    processQueue().catch(err => console.error('[queue] processQueue error:', err))
+    return
+  }
+
   const queue = readQueue()
   const last = queue.at(-1)
   if (last) {

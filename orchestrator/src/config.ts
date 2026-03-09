@@ -15,3 +15,11 @@ export const REPO_PATH = process.env.REPO_PATH ?? process.cwd()
 export const PORT = parseInt(process.env.PORT ?? '3000', 10)
 export const WEBHOOK_SECRET = requireEnv('GITHUB_WEBHOOK_SECRET')
 export const TEST_COMMAND = process.env.TEST_COMMAND ?? 'npm test'
+
+// Comma-separated list of agents that are handled manually by humans instead of being
+// auto-invoked. The agent label is still applied to the issue so the human knows what
+// to do, but no AI session is started.
+// Example: MANUAL_AGENTS=developer,architect
+export const MANUAL_AGENTS: Set<string> = new Set(
+  (process.env.MANUAL_AGENTS ?? '').split(',').map(s => s.trim()).filter(Boolean),
+)
