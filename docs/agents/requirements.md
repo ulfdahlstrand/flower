@@ -84,6 +84,7 @@ about to create.
    {
      "issue_id": <number>,
      "status": "in_requirements",
+     "branch": null,
      "conversation_log": [],
      "decisions": {
        "approach": null,

@@ -43,9 +43,15 @@ Before creating a branch or writing any code, check:
 
 Only proceed to Step 3 once you are confident the task is clear and unblocked.
 
-### Step 3 — Create your feature branch
-Once confirmed unblocked, call `git_create_branch` with a name following the
-pattern `task/{issue-id}-short-description` (e.g. `task/42-add-login-flow`).
+### Step 3 — Create or resume your feature branch
+Check `/tasks/{issue-id}.json` for a `branch` field.
+
+- **Branch already recorded** → call `git_checkout_branch` with that branch name.
+  Do **not** create a new branch. Resume work on the existing branch.
+- **No branch recorded** → call `git_create_branch` with a name following the pattern
+  `task/{issue-id}-short-description` (e.g. `task/42-add-login-flow`).
+  Immediately update `/tasks/{issue-id}.json` with `"branch": "<branch-name>"` so future
+  sessions can find and resume this branch.
 
 This must happen before any `write_file` or `git_commit_and_push` call. If you skip this step
 the commit will be rejected.
@@ -115,6 +121,7 @@ playbook file in your PR commit.
 ### Step 9 — Update task state
 Update `/tasks/{issue-id}.json`:
 - Set `status` to `"in_review"` (valid values: `in_requirements` → `ready_for_development` → `in_progress` → `in_review` → `complete`)
+- Set `branch` to the branch name you worked on (if not already set from Step 3)
 - Append to `conversation_log`:
   ```json
   {
@@ -153,6 +160,11 @@ If you cannot proceed, post a comment on the Task issue and stop:
 
 **Missing architecture.md entry (e.g. required library not listed):**
 `[DEVELOPER] Blocked. This task requires <library/pattern> which is not in architecture.md. Assigning to Architect to update architecture and hand back.`
+
+Before posting any blocker comment: if you have a branch checked out and have made any changes,
+commit them first so the work is not lost:
+`git commit -m "wip: partial implementation — blocked on <brief reason>"`
+This allows the next session to resume without duplicating effort.
 
 Then: update `/tasks/{issue-id}.json` with action `blocked` and a clear summary, and add label `agent:architect` to the task issue. Do **not** remove any existing labels. The Architect will update `architecture.md` and hand control back to you directly.
 
