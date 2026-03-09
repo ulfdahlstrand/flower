@@ -12,6 +12,9 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
     case 'pm':
       return pmMode === 'init' ? buildPmInit() : buildPmMonitor()
 
+    case 'po':
+      return buildPo(issueNumber!)
+
     case 'architect':
       if (architectMode === 'feature_review') return buildArchitectFeatureReview(issueNumber!)
       if (architectMode === 'task_review') return buildArchitectTaskReview(issueNumber!)
@@ -39,6 +42,14 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
     default:
       throw new Error(`Unknown agent: ${agent}`)
   }
+}
+
+const buildPo = async (issueNumber: number): Promise<string> => {
+  const issue = await getIssue(issueNumber)
+  return `You are being invoked to handle Feature Request #${issueNumber}.
+
+## Feature Request #${issueNumber}
+${issue}`
 }
 
 const buildPmInit = (): string => {

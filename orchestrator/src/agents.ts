@@ -12,6 +12,7 @@ export interface AgentConfig {
 
 const MODELS: Record<AgentName, string> = {
   pm: 'claude-sonnet-4-6',
+  po: 'claude-sonnet-4-6',
   architect: 'claude-opus-4-6',
   requirements: 'claude-sonnet-4-6',
   developer: 'claude-sonnet-4-6',

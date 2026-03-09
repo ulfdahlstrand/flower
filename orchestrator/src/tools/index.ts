@@ -113,6 +113,33 @@ const SHARED_SCHEMAS: Tool[] = [
 ]
 
 const AGENT_SCHEMAS: Record<string, Tool[]> = {
+  po: [
+    GITHUB_CLOSE_ISSUE_SCHEMA,
+    {
+      name: 'github_create_issue',
+      description: 'Create an Epic, Feature, or Task issue once the feature request is fully understood.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          body: { type: 'string' },
+          labels: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['title', 'body', 'labels'],
+      },
+    },
+    {
+      name: 'github_list_issues',
+      description: 'List issues to check for duplicates before creating a new one.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          labels: { type: 'array', items: { type: 'string' } },
+          state: { type: 'string', enum: ['open', 'closed', 'all'] },
+        },
+      },
+    },
+  ],
   pm: [
     GITHUB_CLOSE_ISSUE_SCHEMA,
     GITHUB_LIST_CHILD_ISSUES_SCHEMA,

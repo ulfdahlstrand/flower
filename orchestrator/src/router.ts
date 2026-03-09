@@ -186,7 +186,9 @@ export const routeIssueComment = async (issue: Issue, commentBody: string): Prom
     return
   }
   const existingSession = loadSession(params)
-  if (existingSession && !/continue/i.test(commentBody)) {
+  // PO is conversational — every user reply is expected input, no "continue" needed.
+  // Other agents require "continue" to resume a paused session.
+  if (existingSession && params.agent !== 'po' && !/continue/i.test(commentBody)) {
     console.log(`[router] Session paused for #${issue.number} — comment must include "continue" to resume`)
     return
   }
@@ -280,7 +282,9 @@ const resolveIssueParams = (
   const isEpic = currentLabels.includes('type:epic')
   const isFeature = currentLabels.includes('type:feature')
   const isTask = currentLabels.includes('type:task')
+  const isFeatureRequest = currentLabels.includes('type:feature-request')
 
+  if (addedLabel === 'agent:po' && isFeatureRequest) return { agent: 'po', issueNumber }
   if (addedLabel === 'agent:requirements' && isEpic) return { agent: 'requirements', issueNumber, requirementsMode: 'epic_breakdown' }
   if (addedLabel === 'agent:architect' && isFeature) return { agent: 'architect', issueNumber, architectMode: 'feature_review' }
   if (addedLabel === 'agent:architect' && isTask) {

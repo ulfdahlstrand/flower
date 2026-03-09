@@ -1,5 +1,6 @@
 export type AgentName =
   | 'pm'
+  | 'po'
   | 'architect'
   | 'requirements'
   | 'developer'

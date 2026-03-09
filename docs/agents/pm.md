@@ -110,6 +110,7 @@ Valid status transitions:
 
 | Name | Color | Description |
 |------|-------|-------------|
+| `agent:po` | `e11d48` | Product Owner Agent |
 | `agent:pm` | `7057ff` | PM Agent |
 | `agent:requirements` | `0075ca` | Requirements Specialist Agent |
 | `agent:architect` | `e4812b` | Architect Agent |
@@ -123,6 +124,7 @@ Valid status transitions:
 | `status:in-testing` | `f9d0c4` | Being tested |
 | `status:done` | `0e8a16` | Completed |
 | `status:blocked` | `b60205` | Blocked |
+| `type:feature-request` | `f9d0c4` | Incoming feature request from a user |
 | `type:epic` | `3e4b9e` | Large body of work |
 | `type:feature` | `a2eeef` | Feature work |
 | `type:task` | `d4c5f9` | Single development task |
@@ -175,6 +177,22 @@ Implementation recipes accumulated by the Developer Agent over time.
 ```
 
 ### Required Issue Templates
+
+**`.github/ISSUE_TEMPLATE/feature-request.md`**
+```
+---
+name: Feature Request
+about: Describe something you'd like — the PO Agent will help clarify and create the right issue
+title: '[REQUEST] '
+labels: 'type:feature-request, agent:po'
+---
+
+## What would you like?
+<!-- Describe what you want as clearly as you can. The PO Agent will ask follow-up questions. -->
+
+## Why do you want it?
+<!-- Optional: what problem does this solve for you? -->
+```
 
 **`.github/ISSUE_TEMPLATE/epic.md`**
 ```
