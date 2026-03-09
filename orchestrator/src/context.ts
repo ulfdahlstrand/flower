@@ -13,13 +13,14 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
       return pmMode === 'init' ? buildPmInit() : buildPmMonitor()
 
     case 'architect':
-      if (architectMode === 'epic_breakdown') return buildArchitectEpicBreakdown(issueNumber!)
+      if (architectMode === 'feature_review') return buildArchitectFeatureReview(issueNumber!)
       if (architectMode === 'task_review') return buildArchitectTaskReview(issueNumber!)
       if (architectMode === 'architectural_task') return buildArchitectArchitecturalTask(issueNumber!)
       if (architectMode === 'pr_review') return buildArchitectPrReview(prNumber!, issueNumber!)
       throw new Error('Architect requires architectMode')
 
     case 'requirements':
+      if (requirementsMode === 'epic_breakdown') return buildRequirementsEpicBreakdown(issueNumber!)
       if (requirementsMode === 'task_revision') return buildRequirementsTaskRevision(issueNumber!)
       return buildRequirements(issueNumber!)
 
@@ -79,13 +80,30 @@ ${all}
 ${blocked}`
 }
 
-const buildArchitectEpicBreakdown = async (epicNumber: number): Promise<string> => {
+const buildRequirementsEpicBreakdown = async (epicNumber: number): Promise<string> => {
   const architecture = safeReadFile('docs/architecture.md')
-  const decisions = safeReadFile('docs/tech-decisions.md')
   const epic = await getIssue(epicNumber)
   return `You are being invoked to break down Epic #${epicNumber} into Feature issues.
 
 ## Epic #${epicNumber}
+${epic}
+
+## Current Architecture
+${architecture}`
+}
+
+const buildArchitectFeatureReview = async (featureNumber: number): Promise<string> => {
+  const architecture = safeReadFile('docs/architecture.md')
+  const decisions = safeReadFile('docs/tech-decisions.md')
+  const feature = await getIssue(featureNumber)
+  const epicRef = extractParentRef(JSON.parse(feature).body)
+  const epic = epicRef ? await getIssue(epicRef) : '(no parent epic linked)'
+  return `You are being invoked to review Feature #${featureNumber} for architectural fit.
+
+## Feature #${featureNumber}
+${feature}
+
+## Parent Epic
 ${epic}
 
 ## Current Architecture

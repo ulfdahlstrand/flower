@@ -69,12 +69,12 @@ export const runStartupCascadeCheck = async (): Promise<void> => {
 export const routeIssueLabeled = async (issue: Issue, addedLabel: string): Promise<void> => {
   const labels = labelNames(issue.labels)
 
-  // PM label on an epic: hand off to Architect — no LLM reasoning needed
+  // PM label on an epic: hand off to Requirements — requirements-driven flow
   if (addedLabel === 'agent:pm' && labels.includes('type:epic')) {
-    console.log(`[router] Epic #${issue.number} assigned to PM — redirecting to Architect`)
+    console.log(`[router] Epic #${issue.number} assigned to PM — redirecting to Requirements`)
     await removeLabel(issue.number, 'agent:pm')
-    await addLabel(issue.number, 'agent:architect')
-    await postComment(issue.number, '[PM] Epic received. Assigning to Architect for feature breakdown.')
+    await addLabel(issue.number, 'agent:requirements')
+    await postComment(issue.number, '[PM] Epic received. Assigning to Requirements for feature breakdown.')
     return
   }
 
@@ -281,7 +281,8 @@ const resolveIssueParams = (
   const isFeature = currentLabels.includes('type:feature')
   const isTask = currentLabels.includes('type:task')
 
-  if (addedLabel === 'agent:architect' && isEpic) return { agent: 'architect', issueNumber, architectMode: 'epic_breakdown' }
+  if (addedLabel === 'agent:requirements' && isEpic) return { agent: 'requirements', issueNumber, requirementsMode: 'epic_breakdown' }
+  if (addedLabel === 'agent:architect' && isFeature) return { agent: 'architect', issueNumber, architectMode: 'feature_review' }
   if (addedLabel === 'agent:architect' && isTask) {
     // Distinguish architect's own architectural tasks (no tasks/{id}.json) from requirements-reviewed tasks (have tasks/{id}.json)
     const hasTaskFile = fs.existsSync(path.resolve(REPO_PATH, `tasks/${issueNumber}.json`))
