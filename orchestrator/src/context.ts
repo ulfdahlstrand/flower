@@ -10,6 +10,7 @@ export const buildContext = async (params: InvocationParams): Promise<string> =>
 
   switch (agent) {
     case 'pm':
+      if (pmMode === 'setup') return buildPmSetup()
       return pmMode === 'init' ? buildPmInit() : buildPmMonitor()
 
     case 'po':
@@ -51,6 +52,13 @@ const buildPo = async (issueNumber: number): Promise<string> => {
 ## Feature Request #${issueNumber}
 ${issue}`
 }
+
+const buildPmSetup = (): string =>
+  `You are being invoked to run the repository setup check (Step 0 of your workflow).
+
+Check that all required labels exist and that all required issue templates exist.
+Create anything that is missing. Do not read or create docs files.
+Do nothing else — do not create epics, milestones, or monitor issues. When done, stop.`
 
 const buildPmInit = (): string => {
   const brief = safeReadFile('product/brief.md')

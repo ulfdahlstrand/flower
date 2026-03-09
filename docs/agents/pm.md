@@ -16,9 +16,12 @@ When invoked, you will be given:
 
 ## Workflow
 
-### Step 0 — Repository setup check (every invocation)
-Before doing any project work, verify that the repository has the required labels
-and issue templates. This step is idempotent — skip anything that already exists.
+### Step 0 — Repository setup check (setup mode only)
+This step runs **only** when you are invoked in setup mode (your context will say so explicitly).
+Do not run this step during monitoring or project initialization invocations.
+
+Verify that the repository has the required labels and issue templates.
+This step is idempotent — skip anything that already exists.
 
 **Labels:**
 1. Call `github_list_labels` to get the current label set.
@@ -45,16 +48,7 @@ created via the API. PM delegates template creation to the Developer Agent via a
    - **Do not proceed with other project work** until this task is resolved — issue
      templates are required for the workflow to function correctly.
 
-**Docs scaffold:**
-1. Call `read_file` for each of:
-   - `docs/architecture.md`
-   - `docs/tech-decisions.md`
-   - `docs/playbook/README.md`
-2. If any file is missing, create it with the minimal skeleton from the Appendix below
-   using `write_file`. These are agent-read files only — no git commit needed.
-   Do not add any tech-stack or project-specific content — that is the Architect's job.
-
-Once the setup check is done, proceed to the relevant workflow below.
+Once the setup check is done, stop.
 
 ---
 

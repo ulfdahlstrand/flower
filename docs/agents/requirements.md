@@ -95,13 +95,17 @@ about to create.
    Valid status values (use exactly these strings, no variations):
    `in_requirements` → `ready_for_development` → `in_progress` → `in_review` → `complete`
 
-### Step 4 — Get Architect sign-off
-1. Post a comment on the task issue requesting Architect review:
-   `[REQUIREMENTS] Draft complete. Requesting Architect review for architectural fit.`
-2. The Architect will respond with one of: Approved / Approved with notes / Blocked.
-3. If **Blocked**: address the blocker (or wait for the architectural task to resolve), then revise the task and repeat Step 3.
-4. If **Approved with notes**: incorporate the notes into the task body and acceptance criteria before proceeding.
-5. Append the Architect's response to `conversation_log` in `/tasks/{issue-id}.json`.
+### Step 4 — Await Architect sign-off
+The `agent:architect` label applied in Step 3 triggers the Architect automatically.
+Post a comment so the context is clear:
+`[REQUIREMENTS] Draft complete. Requesting Architect review for architectural fit.`
+
+The Architect will route directly to Tester (approved) or back to Requirements (blocked).
+If the issue comes back to you (label changed to `agent:requirements`):
+- Read the Architect's comment to understand what needs to change.
+- Revise the task body and acceptance criteria.
+- Append the outcome to `conversation_log` in `/tasks/{issue-id}.json`.
+- Post: `[REQUIREMENTS] Revised. @agent:architect`
 
 ### Step 5 — Self-review for testability before Tester sign-off
 Before sending to the Tester, go through each acceptance criterion and answer:
@@ -118,20 +122,18 @@ Rewrite any criterion that fails these checks. Common patterns to fix:
 
 Only proceed to Step 6 once every criterion would pass the Tester's three questions.
 
-### Step 6 — Get Tester sign-off
-1. Update the label to `agent:tester` and post:
-   `[REQUIREMENTS] Architect approved. Requesting Tester review for testability.`
-2. The Tester will respond with: Approved / Needs revision.
-3. If **Needs revision**: revise acceptance criteria based on Tester feedback, then repeat Step 4.
-4. Append the Tester's response to `conversation_log` in `/tasks/{issue-id}.json`.
+### Step 6 — Tester sign-off
+The Architect routes directly to the Tester — you do not trigger the Tester yourself.
+If the Tester sends the issue back to Requirements (label changed to `agent:requirements`):
+- Read the Tester's comment to understand what needs revision.
+- Revise acceptance criteria, append to `conversation_log`.
+- Post: `[REQUIREMENTS] Acceptance criteria revised. @agent:architect`
 
-### Step 7 — Finalize the task
-1. Once both Architect and Tester have approved:
-   - Update label to `agent:developer`
-   - Post: `[REQUIREMENTS] Task finalized. Architect and Tester have approved. Ready for development.`
-   - Update `/tasks/{issue-id}.json` status to `"ready_for_development"`
-2. Notify PM (via comment on the Feature issue) that the task is ready:
-   `[REQUIREMENTS] Task #<number> is defined and ready for development.`
+### Step 7 — Task complete
+Once the Tester has approved, the Tester routes the task to the Developer automatically.
+Your role is finished. Append to `conversation_log` in `/tasks/{issue-id}.json` with action
+`requirements_complete` and update status to `"ready_for_development"` if you haven't already.
+Optionally notify PM: `[REQUIREMENTS] Task #<number> is defined and ready for development.`
 
 ---
 
@@ -143,10 +145,9 @@ to be revised — triggered by Tester rejection or a human comment requesting ch
 2. Read `/tasks/{issue-id}.json` to understand what sign-offs have already been given.
 3. Update the Task issue body with the revised acceptance criteria.
 4. Append to `conversation_log` with action `criteria_revised` and a summary of changes.
-5. Restart the sign-off process from Step 3 (Architect) — previous approvals are invalidated
-   by the criteria change and must be re-obtained.
-   - Remove any existing `agent:tester` or `agent:developer` label if present.
-   - Add `agent:architect` and post: `[REQUIREMENTS] Acceptance criteria revised. Requesting re-approval.`
+5. Restart the sign-off process from Step 4 — previous approvals are invalidated by the criteria change.
+   - Post: `[REQUIREMENTS] Acceptance criteria revised. Requesting re-approval.`
+   - Add label `agent:architect` to re-trigger the Architect.
 
 ## Handling re-invocation
 If you are re-invoked after a blocker is resolved:

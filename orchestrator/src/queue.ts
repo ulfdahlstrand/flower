@@ -122,6 +122,17 @@ export const isAgentPendingForPr = (agent: string, prNumber: number): boolean =>
 
 export const enqueueAgent = (params: InvocationParams): void => {
   const queue = readQueue()
+  const last = queue.at(-1)
+  if (last) {
+    // Compare without humanComment — it's dynamic and not meaningful for dedup
+    const { humanComment: _a, ...incoming } = params
+    const { humanComment: _b, ...lastParams } = last
+    if (JSON.stringify(incoming) === JSON.stringify(lastParams)) {
+      console.log(`[queue] Skipping duplicate ${params.agent}${params.issueNumber ? ` #${params.issueNumber}` : ''} entry`)
+      processQueue().catch(err => console.error('[queue] processQueue error:', err))
+      return
+    }
+  }
   queue.push(params)
   writeQueue(queue)
   console.log(`[queue] Enqueued ${params.agent} (depth: ${queue.length})`)

@@ -13,11 +13,11 @@ export interface AgentConfig {
 const MODELS: Record<AgentName, string> = {
   pm: 'claude-sonnet-4-6',
   po: 'claude-sonnet-4-6',
-  architect: 'claude-opus-4-6',
+  architect: 'claude-sonnet-4-6',
   requirements: 'claude-sonnet-4-6',
   developer: 'claude-sonnet-4-6',
   tester: 'claude-sonnet-4-6',
-  reviewer: 'claude-opus-4-6',
+  reviewer: 'claude-sonnet-4-6',
 }
 
 const loadSystemPrompt = (agentName: AgentName): string =>

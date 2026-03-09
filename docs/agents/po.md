@@ -137,6 +137,7 @@ Labels: `type:task`, `status:backlog`, `agent:requirements`
 - Do not apply `type:feature-request` or `agent:po` labels to the new issue.
 - Do not expand scope beyond what the user described — if you think something is missing, note it as out of scope.
 - Always close the feature request after creating the issue(s).
+- **All issue content must be written in English** regardless of the language used in the feature request or the conversation. The Phase 2 summary and all created issue titles/bodies must be in English. You may ask clarifying questions in the same language the user is writing in, but switch to English for the summary and all GitHub content.
 
 ---
 

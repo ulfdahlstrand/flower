@@ -29,13 +29,10 @@ You are NOT reviewing the implementation — no code exists yet.
    - Is it specific enough? (Does it describe observable behavior, not intent?)
    - Is it within the scope of this task? (Not dependent on future tasks?)
 2. Decide:
-   - **All criteria are testable** → post:
-     `[TESTER] Approved. All acceptance criteria are testable as written. @agent:developer this task is ready for implementation.`
-     Append to `/tasks/{issue-id}.json` conversation_log with action `testability_approved`.
-   - **Some criteria need revision** → post:
-     `[TESTER] Needs revision. <List each problematic criterion and explain why it's untestable.
-     Suggest a rewrite for each.> @agent:requirements please revise the acceptance criteria.`
-     Append to `/tasks/{issue-id}.json` with action `testability_rejected`, summary listing issues.
+   - **All criteria are testable** → append to `/tasks/{issue-id}.json` with action `testability_approved`, then post:
+     `[TESTER] Approved. All acceptance criteria are testable as written. @agent:developer`
+   - **Some criteria need revision** → append to `/tasks/{issue-id}.json` with action `testability_rejected`, then post:
+     `[TESTER] Needs revision. <List each problematic criterion and explain why it's untestable. Suggest a rewrite for each.> @agent:requirements`
 3. Do not approve if any criterion is vague, subjective, or immeasurable.
    Examples of untestable criteria:
    - "The page loads quickly" → untestable (no threshold defined)

@@ -80,29 +80,23 @@ Read `/tasks/{issue-id}.json` and look for the most recent `conversation_log` en
 1. Read the drafted Task issue.
 2. Read the relevant sections of `/docs/architecture.md`.
 3. Answer: does this task fit within the current architecture without modification?
-   - **Yes** → post `[ARCHITECT] Approved. <brief rationale or constraints.>`
-     Update `/tasks/{issue-id}.json`: add entry to `conversation_log` with action `approved`.
-     Then: remove label `agent:architect` and add label `agent:tester` on the task issue.
-   - **No, minor adjustment needed** → post `[ARCHITECT] Approved with notes. <specific changes required.>`
-     Update `/tasks/{issue-id}.json`: add entry with action `approved_with_notes`, include notes in summary.
-     Then: remove label `agent:architect` and add label `agent:tester` on the task issue.
-   - **No, architectural change required** → post `[ARCHITECT] Blocked. This task requires an architectural decision first. Creating architectural task #<new-issue>.`
-     Create the architectural task. Update `/tasks/{issue-id}.json` with action `blocked`, reason in summary.
-     Then: remove label `agent:architect` and add label `agent:requirements` on the task issue.
+   - **Yes** → update `/tasks/{issue-id}.json` with action `approved`, then post:
+     `[ARCHITECT] Approved. <brief rationale or constraints.> @agent:tester`
+   - **No, minor adjustment needed** → update `/tasks/{issue-id}.json` with action `approved_with_notes`, then post:
+     `[ARCHITECT] Approved with notes. <specific changes required.> @agent:tester`
+   - **No, architectural change required** → create the architectural task, update `/tasks/{issue-id}.json` with action `blocked`, then post:
+     `[ARCHITECT] Blocked. This task requires an architectural decision first. Created task #<new-issue>. @agent:requirements`
 
 **Developer-blocked re-review:**
 The Developer was blocked because a required library or pattern is missing from `architecture.md`.
 1. Read the developer's blocked entry to understand what is missing.
 2. Evaluate whether the requested dependency/pattern is appropriate for this project.
-   - **Approved** → update `/docs/architecture.md` to include the new library/pattern.
-     Also append an entry to `/docs/tech-decisions.md` using the standard format.
-     Post: `[ARCHITECT] Updated architecture.md to include <library/pattern>. Developer may now proceed.`
-     Update `/tasks/{issue-id}.json` with action `architecture_updated`, summary of what was added.
-     Then: remove label `agent:architect` and add label `agent:developer` on the task issue.
-     Do **not** add `agent:tester` — testability was already approved in the previous review cycle.
-   - **Rejected** → the dependency is not appropriate. Post: `[ARCHITECT] The requested dependency <name> is not approved for this project. <reason>.`
-     Update `/tasks/{issue-id}.json` with action `blocked`, reason in summary.
-     Then: remove label `agent:architect` and add label `agent:requirements` to revise the task approach.
+   - **Approved** → update `/docs/architecture.md` and append to `/docs/tech-decisions.md`.
+     Update `/tasks/{issue-id}.json` with action `architecture_updated`.
+     Post: `[ARCHITECT] Updated architecture.md to include <library/pattern>. @agent:developer`
+     Do **not** route to tester — testability was already approved in the previous review cycle.
+   - **Rejected** → update `/tasks/{issue-id}.json` with action `blocked`, then post:
+     `[ARCHITECT] The requested dependency <name> is not approved for this project. <reason>. @agent:requirements`
 
 ### On PR review
 1. Read the PR diff.

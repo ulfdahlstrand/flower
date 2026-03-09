@@ -1,5 +1,12 @@
 import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
+
+// Prepend ISO timestamp to every log line
+const ts = () => new Date().toISOString()
+for (const level of ['log', 'warn', 'error'] as const) {
+  const orig = console[level].bind(console)
+  console[level] = (...args: unknown[]) => orig(`[${ts()}]`, ...args)
+}
 import { PORT, WEBHOOK_SECRET } from './config.js'
 import { routeIssueLabeled, routePrLabeled, routeIssueComment, routePrComment, routeIssueClosed, routePrMerged, routeCheckSuiteCompleted, runStartupCascadeCheck } from './router.js'
 import { enqueueAgent, recoverQueue } from './queue.js'
@@ -81,7 +88,7 @@ const handleEvent = async (event: string, payload: Record<string, unknown>): Pro
   if (event === 'issue_comment' && payload.action === 'created') {
     const comment = payload.comment as { user: { type: string }; body: string }
     const issue = payload.issue as { number: number; labels: Array<{ name?: string }>; body?: string; pull_request?: unknown }
-    if (comment.user.type === 'Bot') {
+    if (comment.user.type === 'Bot' && !/@agent:/.test(comment.body)) {
       console.log(`[webhook] Ignoring bot comment on #${issue.number}`)
       return
     }
@@ -116,6 +123,7 @@ app.post('/trigger', (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Flower orchestrator listening on port ${PORT}`)
   recoverQueue()
+  enqueueAgent({ agent: 'pm', pmMode: 'setup' })
   runStartupCascadeCheck().catch(err =>
     console.error('[startup] Cascade check failed:', err),
   )
