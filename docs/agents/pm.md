@@ -16,6 +16,35 @@ When invoked, you will be given:
 
 ## Workflow
 
+### Step 0 — Repository setup check (every invocation)
+Before doing any project work, verify that the repository has the required labels
+and issue templates. This step is idempotent — skip anything that already exists.
+
+**Labels:**
+1. Call `github_list_labels` to get the current label set.
+2. Compare against the canonical label list in the Appendix below.
+3. For each missing label, call `github_create_label` with the exact name, color, and description from the Appendix.
+4. Log what was created (or "all labels present") in a `[PM]` comment on any convenient existing issue, or skip the comment if no issues exist yet.
+
+**Issue templates:**
+1. Call `read_file` for each of:
+   - `.github/ISSUE_TEMPLATE/epic.md`
+   - `.github/ISSUE_TEMPLATE/feature.md`
+   - `.github/ISSUE_TEMPLATE/task.md`
+2. If any file is missing (read returns an error), write it using `write_file` with the content from the Appendix below.
+
+**Docs scaffold:**
+1. Call `read_file` for each of:
+   - `docs/architecture.md`
+   - `docs/tech-decisions.md`
+   - `docs/playbook/README.md`
+2. If any file is missing, create it with the minimal skeleton from the Appendix below.
+   Do not add any tech-stack or project-specific content — that is the Architect's job.
+
+Once the setup check is done, proceed to the relevant workflow below.
+
+---
+
 ### On first invocation (new project)
 1. Read `/product/brief.md` thoroughly.
 2. Identify logical release milestones from the goals and features described.
@@ -72,3 +101,160 @@ Valid status transitions:
 - All GitHub comments must be prefixed with `[PM]`.
 - Keep comments concise: decision made + rationale in 2–4 sentences.
 - Do not explain your reasoning at length in comments — save that for the task JSON if needed.
+
+---
+
+## Appendix — Canonical Repository Setup
+
+### Required Labels
+
+| Name | Color | Description |
+|------|-------|-------------|
+| `agent:pm` | `7057ff` | PM Agent |
+| `agent:requirements` | `0075ca` | Requirements Specialist Agent |
+| `agent:architect` | `e4812b` | Architect Agent |
+| `agent:developer` | `0e8a16` | Developer Agent |
+| `agent:tester` | `cccc00` | Tester Agent |
+| `agent:reviewer` | `d93f0b` | Code Reviewer Agent |
+| `status:backlog` | `eeeeee` | Not yet started |
+| `status:in-requirements` | `c5def5` | Requirements being defined |
+| `status:in-development` | `bfd4f2` | Being developed |
+| `status:in-review` | `fef2c0` | In code review |
+| `status:in-testing` | `f9d0c4` | Being tested |
+| `status:done` | `0e8a16` | Completed |
+| `status:blocked` | `b60205` | Blocked |
+| `type:epic` | `3e4b9e` | Large body of work |
+| `type:feature` | `a2eeef` | Feature work |
+| `type:task` | `d4c5f9` | Single development task |
+| `type:bug` | `d73a4a` | Bug fix |
+
+### Required Docs
+
+**`docs/architecture.md`**
+```
+# Architecture
+
+> Maintained by the Architect Agent. All changes require a dedicated architectural task.
+
+## Overview
+
+## Decision Log
+See [tech-decisions.md](./tech-decisions.md)
+```
+
+**`docs/tech-decisions.md`**
+```
+# Technical Decisions (ADR Log)
+
+> Append-only. Never delete or modify past decisions.
+
+## Template
+### [DATE] - [DECISION TITLE]
+**Status:** Proposed | Accepted | Superseded
+**Context:** Why was this decision needed?
+**Decision:** What was decided?
+**Consequences:** What does this mean going forward?
+
+---
+```
+
+**`docs/playbook/README.md`**
+```
+# Developer Playbook
+
+Implementation recipes accumulated by the Developer Agent over time.
+
+> **Maintained by:** Developer Agent
+> **Read by:** Developer Agent at the start of any task that matches a pattern
+
+## Index
+
+| File | Pattern |
+|------|---------|
+| *(none yet)* | |
+```
+
+### Required Issue Templates
+
+**`.github/ISSUE_TEMPLATE/epic.md`**
+```
+---
+name: Epic
+about: A large body of work spanning multiple features
+title: '[EPIC] '
+labels: 'type:epic, status:backlog, agent:pm'
+---
+
+## Goal
+<!-- What outcome does this epic achieve? -->
+
+## Background
+<!-- Why are we doing this? What problem does it solve? -->
+
+## Features
+<!-- List of feature issues that make up this epic (fill in as they are created) -->
+- [ ] #
+
+## Success Criteria
+<!-- How do we know this epic is complete? -->
+
+## Out of Scope
+<!-- Explicitly state what this epic does NOT cover -->
+```
+
+**`.github/ISSUE_TEMPLATE/feature.md`**
+```
+---
+name: Feature
+about: A feature broken down from an Epic
+title: '[FEATURE] '
+labels: 'type:feature, status:backlog, agent:architect'
+---
+
+## Parent Epic
+<!-- Link to parent epic -->
+Part of #
+
+## Description
+<!-- What does this feature do? -->
+
+## Tasks
+<!-- List of task issues (fill in as they are created) -->
+- [ ] #
+
+## Architecture Notes
+<!-- Relevant patterns, constraints, or decisions from the architect -->
+
+## Out of Scope
+```
+
+**`.github/ISSUE_TEMPLATE/task.md`**
+```
+---
+name: Task
+about: A single development task
+title: '[TASK] '
+labels: 'type:task, status:backlog'
+---
+
+## Parent Feature
+<!-- Link to parent feature -->
+Part of #
+
+## Context
+<!-- Why does this task exist? -->
+
+## Task Description
+<!-- What needs to be built, clearly and specifically -->
+
+## Acceptance Criteria
+- [ ]
+- [ ]
+- [ ]
+
+## Architecture Notes
+<!-- Files to touch, patterns to follow, constraints -->
+
+## Out of Scope
+<!-- Explicit boundaries -->
+```

@@ -170,6 +170,20 @@ export const submitPrReview = async (
   return `PR review submitted: ${data.html_url}`
 }
 
+export const listLabels = async (): Promise<string> => {
+  const labels = await octokit.paginate(octokit.issues.listLabelsForRepo, {
+    owner: OWNER,
+    repo: REPO,
+    per_page: 100,
+  })
+  return JSON.stringify(labels.map(l => ({ name: l.name, color: l.color, description: l.description ?? '' })))
+}
+
+export const createLabel = async (name: string, color: string, description: string): Promise<string> => {
+  await octokit.issues.createLabel({ owner: OWNER, repo: REPO, name, color, description })
+  return `Label "${name}" created`
+}
+
 export const createPr = async (
   title: string,
   body: string,

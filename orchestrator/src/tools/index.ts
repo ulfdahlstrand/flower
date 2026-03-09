@@ -139,6 +139,24 @@ const AGENT_SCHEMAS: Record<string, Tool[]> = {
       },
     },
     {
+      name: 'github_list_labels',
+      description: 'List all labels currently defined in the repository.',
+      input_schema: { type: 'object', properties: {} },
+    },
+    {
+      name: 'github_create_label',
+      description: 'Create a new label in the repository.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          color: { type: 'string', description: 'Hex color without #, e.g. "7057ff"' },
+          description: { type: 'string' },
+        },
+        required: ['name', 'color', 'description'],
+      },
+    },
+    {
       name: 'github_create_issue',
       description: 'Create a GitHub issue.',
       input_schema: {
@@ -431,6 +449,9 @@ const HANDLERS: Record<string, ToolHandler> = {
   github_comment: ({ issue_number, body }) => github.postComment(issue_number as number, body as string),
   github_add_label: ({ issue_number, label }) => github.addLabel(issue_number as number, label as string),
   github_remove_label: ({ issue_number, label }) => github.removeLabel(issue_number as number, label as string),
+  github_list_labels: () => github.listLabels(),
+  github_create_label: ({ name, color, description }) =>
+    github.createLabel(name as string, color as string, description as string),
   github_create_milestone: ({ title, description, due_on }) =>
     github.createMilestone(title as string, description as string, due_on as string | undefined),
   github_close_milestone: ({ milestone_number }) => github.closeMilestone(milestone_number as number),
