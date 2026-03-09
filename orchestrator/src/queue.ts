@@ -104,6 +104,24 @@ const processQueue = async (): Promise<void> => {
   }
 }
 
+// Read the blocking issue number from a task's conversation_log, if it's blocked.
+// Returns the issue number mentioned in the last 'blocked' log entry, or null.
+const getBlockingIssue = (issueNumber: number): number | null => {
+  try {
+    const taskPath = path.join(REPO_PATH, 'tasks', `${issueNumber}.json`)
+    const task = JSON.parse(fs.readFileSync(taskPath, 'utf-8')) as {
+      conversation_log?: Array<{ action: string; summary?: string }>
+    }
+    const log = task.conversation_log ?? []
+    const blocked = [...log].reverse().find(e => e.action === 'blocked')
+    if (!blocked?.summary) return null
+    const match = blocked.summary.match(/#(\d+)/)
+    return match ? parseInt(match[1], 10) : null
+  } catch {
+    return null
+  }
+}
+
 export const isAgentPendingForPr = (agent: string, prNumber: number): boolean => {
   const queue = readQueue()
   if (queue.some(p => p.agent === agent && p.prNumber === prNumber)) return true
@@ -133,7 +151,25 @@ export const enqueueAgent = (params: InvocationParams): void => {
       return
     }
   }
-  queue.push(params)
+  // If this task is blocked on another issue that is already queued,
+  // insert it after that issue's entry so the blocker runs first.
+  let insertIndex = queue.length
+  if (params.issueNumber) {
+    const blockingIssue = getBlockingIssue(params.issueNumber)
+    if (blockingIssue !== null) {
+      // findLastIndex isn't in the current TS lib target — scan from the end manually
+      let blockingIndex = -1
+      for (let i = queue.length - 1; i >= 0; i--) {
+        if (queue[i].issueNumber === blockingIssue) { blockingIndex = i; break }
+      }
+      if (blockingIndex !== -1) {
+        insertIndex = blockingIndex + 1
+        console.log(`[queue] Task #${params.issueNumber} is blocked on #${blockingIssue} — inserting after it (position ${insertIndex})`)
+      }
+    }
+  }
+
+  queue.splice(insertIndex, 0, params)
   writeQueue(queue)
   console.log(`[queue] Enqueued ${params.agent} (depth: ${queue.length})`)
   processQueue().catch(err => console.error('[queue] processQueue error:', err))
