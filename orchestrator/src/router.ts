@@ -160,6 +160,24 @@ export const routeIssueComment = async (issue: Issue, commentBody: string): Prom
       return
     }
 
+    // Special case: @agent:reviewer on an issue — developer hands off after opening a PR.
+    // The PR number is extracted from the comment body ("PR #N").
+    // This is more reliable than check_suite webhooks whose pull_requests array can be empty.
+    if (mentionMatch[1] === 'reviewer') {
+      const prRef = commentBody.match(/PR #(\d+)/i)
+      if (!prRef) {
+        console.log(`[router] @agent:reviewer on #${issue.number} — no PR number in comment, skipping`)
+        return
+      }
+      const prNumber = parseInt(prRef[1], 10)
+      console.log(`[router] @agent:reviewer on #${issue.number} — routing reviewer for PR #${prNumber}`)
+      const existingAgentLabels = labels.filter(l => l.startsWith('agent:'))
+      await Promise.all(existingAgentLabels.map(l => removeLabel(issue.number, l)))
+      await addLabel(issue.number, 'agent:reviewer')
+      enqueueAgent({ agent: 'reviewer', prNumber, issueNumber: issue.number })
+      return
+    }
+
     const mentionedLabel = `agent:${mentionMatch[1]}`
     // Build the label set as it will look after the swap so resolveIssueParams
     // can determine the correct invocation mode.
