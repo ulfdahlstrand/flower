@@ -1,8 +1,10 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import Anthropic from '@anthropic-ai/sdk'
-import type { AgentConfig, Invocation } from '../types/index.js'
+import type { AgentConfig, Invocation, TaskState } from '../types/index.js'
 import type { ToolContext } from '../tools/index.js'
 import { getToolsForAgent, toClaudeTools, getTool } from '../tools/index.js'
-import { loadSession, saveSession, clearSession, archiveSession } from './session.js'
+import { loadSession, saveSession, archiveSession } from './session.js'
 
 // ---------------------------------------------------------------------------
 // Claude agent runner
@@ -15,6 +17,9 @@ export interface RunnerConfig {
   anthropic: Anthropic
   toolCtx: ToolContext
   sessionsDir: string
+  // Directory where tasks/{issueId}.json files live. Read before each run
+  // to pass current task state to context builders.
+  taskStateDir?: string
   // Token threshold at which we compact older messages using Haiku
   compactionThreshold?: number
 }
@@ -32,12 +37,27 @@ export const runAgent = async (
 
   console.log(`${label} Starting — ${new Date().toISOString()}`)
 
+  // Load task state if available — passed to the context builder so agents
+  // can resume from a known state (e.g. reuse the existing branch).
+  let taskState: TaskState | undefined
+  if (invocation.issueId && cfg.taskStateDir) {
+    const statePath = path.join(cfg.taskStateDir, `${invocation.issueId}.json`)
+    if (fs.existsSync(statePath)) {
+      try {
+        taskState = JSON.parse(fs.readFileSync(statePath, 'utf8')) as TaskState
+      } catch {
+        console.warn(`${label} Could not parse task state at ${statePath}`)
+      }
+    }
+  }
+
   // Build context (system prompt)
   const systemPrompt = await agentConfig.buildContext({
     issueId: invocation.issueId,
     prId: invocation.prId,
     stage: invocation.stage,
     tracker: toolCtx.tracker,
+    taskState,
   })
 
   // Load or create session
