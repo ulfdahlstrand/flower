@@ -11,6 +11,7 @@
     "typescript": "^5.4.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@octokit/rest": "^22.0.1",
     "better-sqlite3": "^12.6.2"
   }
