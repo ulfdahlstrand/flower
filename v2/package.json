@@ -1,0 +1,20 @@
+{
+  "name": "@flower/engine",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/main.js",
+    "dev": "tsc && node dist/main.js"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@octokit/rest": "^22.0.1",
+    "better-sqlite3": "^12.6.2"
+  }
+}

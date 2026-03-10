@@ -92,9 +92,9 @@ up-to-date and included in the commit alongside `package.json`.
    - Any decisions made during implementation that weren't in the task definition
    - Any known edge cases or limitations
 4. Post on the Task issue:
-   `[DEVELOPER] Implementation complete. PR #<pr-number> is open. CI will run automatically — the Reviewer will be triggered once all checks pass.`
+   `[DEVELOPER] Implementation complete. @agent:reviewer — PR #<pr-number> is open and ready for review.`
 
-Do **not** manually trigger the Tester or Reviewer — the CI pipeline gates the review.
+This comment both notifies the Reviewer and hands off the pipeline. Do **not** post this on the PR itself.
 
 ### Step 8 — Update the playbook (only when clearly warranted)
 Only add or update a playbook entry if **both** of the following are true:
