@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/main.js",
+    "dev": "tsc && node dist/main.js"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
